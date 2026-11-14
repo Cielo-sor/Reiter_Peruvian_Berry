@@ -1,0 +1,10 @@
+# Fase actual: 2 clases. Si exportas desde Roboflow, usa SU data.yaml (los nombres deben ser idénticos).
+path: dataset
+train: images/train
+val: images/val
+names:
+  0: arandano_danado
+  1: arandano_sano
+# Fase futura (clases por tipo de defecto): deshidratado, exudacion, pudricion, hongo, machucon,
+# partidura, ausencia_bloom, bajo_calibre, cicatriz, dano_ave, desgarro, hendidura_pedicelar,
+# inmaduro, russeting, suciedad, pedunculo_adherido, resto_floral, filodio

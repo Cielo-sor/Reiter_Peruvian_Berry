@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calidad y condición – Arándanos</title>
+<style>
+:root{--bg:#f5f7f4;--card:#fff;--text:#1d2b20;--muted:#6b7a6e;--cond:#c0392b;--cal:#c26a00;--ok:#2e7d32;--border:#dfe5dc}
+@media (prefers-color-scheme:dark){:root{--bg:#141a15;--card:#1e271f;--text:#e8efe9;--muted:#9aa89d;--cond:#e0574a;--cal:#e08a1e;--ok:#3f9a45;--border:#2e3a30}}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text)}
+header{padding:20px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+h1{font-size:20px;margin:0}main{padding:0 24px 32px;max-width:1300px;margin:auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
+.stat b{display:block;font-size:26px}.stat span{color:var(--muted);font-size:13px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:10px;flex-wrap:wrap}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.toolbar{display:flex;gap:8px;margin:14px 0;flex-wrap:wrap}
+select,button{padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:14px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.card img{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;cursor:pointer}
+.body{padding:12px}.row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.badge{font-size:12px;padding:3px 8px;border-radius:99px;color:#fff}
+.cond{background:var(--cond)}.cal{background:var(--cal)}.ok{background:var(--ok)}
+.chip{display:inline-block;font-size:12px;border:1px solid var(--border);border-left-width:4px;border-radius:8px;padding:2px 8px;margin:2px 4px 0 0}
+.chip.cond{border-left-color:var(--cond);background:none;color:var(--text)}
+.chip.cal{border-left-color:var(--cal);background:none;color:var(--text)}
+.chip.ok{border-left-color:var(--ok);background:none;color:var(--text)}
+.meta{font-size:12px;color:var(--muted)}.del{color:var(--cond);border:none;background:none;padding:0;font-size:12px;margin-top:6px}
+.empty{padding:40px;text-align:center;color:var(--muted)}
+h2{font-size:14px;margin:16px 0 6px;color:var(--muted);font-weight:600}
+</style>
+</head>
+<body>
+<header><h1>🫐 Calidad y condición de arándano cosechado</h1><span class="meta" id="upd"></span></header>
+<main>
+  <section class="stats" id="stats"></section>
+  <div class="legend">
+    <span><i class="dot" style="background:var(--cond)"></i>Dañado / defecto de condición</span>
+    <span><i class="dot" style="background:var(--cal)"></i>Defecto de calidad</span>
+    <span><i class="dot" style="background:var(--ok)"></i>Sano</span>
+  </div>
+  <h2>Detecciones por tipo</h2>
+  <div id="types"></div>
+  <div class="toolbar">
+    <select id="filter"><option value="all">Todas las imágenes</option><option value="defects">Solo con defectos</option></select>
+    <button id="reload">Actualizar</button>
+  </div>
+  <section class="grid" id="grid"></section>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const cls = c => c === 'condicion' ? 'cond' : c === 'sano' ? 'ok' : 'cal';
+function el(tag, c, text){const e=document.createElement(tag); if(c)e.className=c; if(text!==undefined)e.textContent=text; return e;}
+
+async function load(){
+  try{
+    const only = $('filter').value === 'defects';
+    const [items, st] = await Promise.all([
+      fetch('/api/detections?only_defects='+only).then(r=>r.json()),
+      fetch('/api/stats').then(r=>r.json())
+    ]);
+    renderStats(st); renderGrid(items);
+    $('upd').textContent = 'Actualizado: ' + new Date().toLocaleTimeString();
+  }catch(e){ $('upd').textContent = 'Error de conexión'; }
+}
+
+function renderStats(s){
+  const box=$('stats'); box.replaceChildren();
+  const add=(v,l)=>{const d=el('div','stat'); d.append(el('b','',v), el('span','',l)); box.append(d);};
+  add(s.total_images,'Imágenes analizadas');
+  add(s.images_with_defects,'Imágenes con defectos');
+  add(s.condition_defects,'Defectos de condición / dañados');
+  add(s.quality_defects,'Defectos de calidad');
+  const t=$('types'); t.replaceChildren();
+  if(!s.by_label.length) t.append(el('span','meta','Sin datos todavía.'));
+  s.by_label.forEach(g=>t.append(el('span','chip '+cls(g.category), g.display+' × '+g.count)));
+}
+
+function renderGrid(items){
+  const g=$('grid'); g.replaceChildren();
+  if(!items.length){g.append(el('div','empty','Aún no hay imágenes registradas.'));return;}
+  items.forEach(it=>{
+    const c=el('div','card');
+    const img=el('img'); img.src=it.annotated_url; img.loading='lazy'; img.alt='Inspección';
+    img.onclick=()=>window.open(it.annotated_url,'_blank');
+    const b=el('div','body'), r=el('div','row');
+    const has=it.defect_count>0;
+    r.append(el('b','',has?'Defectos detectados':'Sin defectos'),
+             el('span','badge '+(has?(it.condition_count>0?'cond':'cal'):'ok'), has?it.defect_count+' def.':'OK'));
+    b.append(r);
+    const groups={}; it.detections.forEach(d=>{const k=d.label; groups[k]=groups[k]||{d,n:0}; groups[k].n++;});
+    Object.values(groups).forEach(x=>b.append(el('span','chip '+cls(x.d.category), (x.d.display||x.d.label)+' × '+x.n)));
+    const m=el('div','meta', new Date(it.created_at).toLocaleString()+(it.lote?' · Lote: '+it.lote:''));
+    m.style.marginTop='8px'; b.append(m);
+    const d=el('button','del','Eliminar');
+    d.onclick=async()=>{ if(confirm('¿Eliminar este registro?')){await fetch('/api/detections/'+it.id,{method:'DELETE'}); load();} };
+    b.append(d); c.append(img,b); g.append(c);
+  });
+}
+$('filter').onchange=load; $('reload').onclick=load;
+load(); setInterval(load,15000);
+</script>
+</body>
+</html>
