@@ -358,3 +358,8 @@ subida → confirmación → worker → caso → decisión → aviso.
 - Django recibe fotos de Flutter en `/api/v1/inspecciones`, guarda la inspección y expone el historial web en `/inspecciones/`. Los móviles acceden a sus propias fotos por JWT. Las fotos se guardan en la misma base que el registro.
 - Flutter usa el inicio de sesión y la renovación de tokens existentes. Se agregó una configuración de despliegue separada para Reiter y un peso ONNX exclusivo para la inspección.
 - La detección con fotos reales requiere el modelo entrenado. Para verificar el acceso desde internet faltan el dominio y la infraestructura de Reiter. FastAPI sigue disponible durante la transición.
+
+## Detecciones y Casetas (24/11/2026)
+
+- Detecciones lista las fotos analizadas con filtro de lote, paginación y conteo de frutos e indicios de IA.
+- Monitoreo enlaza a Casetas y muestra su catálogo. La URL anterior redirige a la nueva ubicación con los mismos permisos.

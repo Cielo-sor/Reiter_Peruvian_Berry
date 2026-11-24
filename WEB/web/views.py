@@ -18,11 +18,11 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.gzip import gzip_page
 from django.views.decorators.http import require_GET, require_http_methods, require_POST
-from django.contrib.auth.decorators import login_required
+from inspecciones.models import Inspeccion
 from auditoria import services as audit
 from auditoria.models import AuditEvent
 from campo import services as catalogo
-from campo.models import FieldLot, FieldRow, FieldSegment, Marker
+from campo.models import Caseta, FieldLot, FieldRow, FieldSegment, Marker
 from cuentas import services as cuentas
 from cuentas.models import AccountStatus, Device, PasswordResetRequest, Role, User
 from evidencias.media import signed_image_url
@@ -391,7 +391,24 @@ def plano(request):
 # ------------------------------------------------------------------ sesiones
 @web_view("sesiones.ver")
 def detecciones_reiter(request):
-    return render(request, "web/detecciones.html")
+    lote = request.GET.get("lote", "").strip()[:120]
+    registros = Inspeccion.objects.defer("original", "anotada")
+    if lote:
+        registros = registros.filter(lote__icontains=lote)
+    pagina = Paginator(registros, 24).get_page(request.GET.get("pagina"))
+    resumen = {"frutos": 0, "condicion": 0, "calidad": 0}
+    capturas = []
+    for registro in pagina:
+        condicion = sum(d["category"] == "condicion" for d in registro.detecciones)
+        calidad = sum(d["category"] == "calidad" for d in registro.detecciones)
+        frutos = len(registro.detecciones)
+        resumen["frutos"] += frutos
+        resumen["condicion"] += condicion
+        resumen["calidad"] += calidad
+        capturas.append({"registro": registro, "frutos": frutos, "indicios": condicion + calidad})
+    return render(request, "web/detecciones.html", {
+        "pagina": pagina, "capturas": capturas, "resumen": resumen, "lote": lote,
+    })
 
 
 @web_view("sesiones.ver")
@@ -895,6 +912,10 @@ def limpieza_fotos(request):
         "total_borradas": DeletedCapture.objects.count(),
         "ultimas": DeletedCapture.objects.select_related("deleted_by").order_by("-deleted_at")[:10]})
 
-@login_required
+@web_view("sesiones.ver")
 def modulos_casetas(request):
-    return render(request, "web/modulos_casetas.html")
+    return render(request, "web/modulos_casetas.html", {"casetas": Caseta.objects.all()})
+
+@web_view("sesiones.ver")
+def casetas_anterior(request):
+    return redirect("web:modulos_casetas")

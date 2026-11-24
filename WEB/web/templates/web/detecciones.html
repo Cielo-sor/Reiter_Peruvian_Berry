@@ -1,50 +1,63 @@
 {% extends "web/base.html" %}
 {% load static web_tags %}
-
 {% block titulo %}Detecciones{% endblock %}
-{% block head %}
-  <link rel="stylesheet" href="{% static 'web/detecciones_estilos.css' %}">
-{% endblock %}
-
+{% block head %}<link rel="stylesheet" href="{% static 'web/detecciones_estilos.css' %}">{% endblock %}
 {% block contenido %}
 <div class="detecciones">
+  <header>
     <h1>Detecciones de arándanos</h1>
-    <p>Consulta las capturas por módulo y caseta y los indicios sugeridos por la IA.</p>
-  
+    <p>Consulta las fotos analizadas y los indicios sugeridos por la IA.</p>
+  </header>
 
-  <dl class="detecciones-indicadores" aria-label="Indicadores pendientes de conexión">
-    <div class="detecciones-tarjeta"><dt>Capturas</dt><dd>—</dd></div>
-    <div class="detecciones-tarjeta"><dt>Frutos analizados</dt><dd>—</dd></div>
-    <div class="detecciones-tarjeta"><dt>Calidad</dt><dd>—</dd></div>
-    <div class="detecciones-tarjeta"><dt>Condición</dt><dd>—</dd></div>
+  <form method="get" class="rc-filtros" aria-label="Buscar detecciones">
+    <label for="detecciones-lote">Lote
+      <input id="detecciones-lote" type="search" name="lote" value="{{ lote }}" maxlength="120">
+    </label>
+    <button type="submit" class="btn btn-primario">{% icono "filtro" %} Filtrar</button>
+    {% if lote %}<a class="btn" href="{% url 'web:detecciones_reiter' %}">Limpiar</a>{% endif %}
+  </form>
+
+  {% if capturas %}
+  <dl class="detecciones-indicadores" aria-label="Resumen de esta página">
+    <div class="detecciones-tarjeta"><dt>Capturas en esta página</dt><dd>{{ capturas|length }}</dd></div>
+    <div class="detecciones-tarjeta"><dt>Frutos identificados</dt><dd>{{ resumen.frutos }}</dd></div>
+    <div class="detecciones-tarjeta"><dt>Indicios de calidad</dt><dd>{{ resumen.calidad }}</dd></div>
+    <div class="detecciones-tarjeta"><dt>Indicios de condición</dt><dd>{{ resumen.condicion }}</dd></div>
   </dl>
 
-  <section class="detecciones-tarjeta" aria-labelledby="detecciones-filtros">
-    <h2 id="detecciones-filtros">Filtros de búsqueda</h2>
-    <p>Los filtros se habilitarán al conectar los datos de las capturas.</p>
-    <fieldset class="detecciones-campos" disabled>
-      <legend class="sr-only">Módulo y caseta</legend>
-      <label>Módulo <select><option>Todos los módulos</option></select></label>
-      <label>Caseta <select><option>Todas las casetas</option></select></label>
-    </fieldset>
+  <section aria-labelledby="fotos-detecciones">
+    <h2 id="fotos-detecciones">Capturas analizadas</h2>
+    <div class="detecciones-resultados">
+      {% for captura in capturas %}
+      {% with registro=captura.registro %}
+      <article class="detecciones-tarjeta detecciones-captura">
+        <a href="{% url 'web:inspeccion_imagen' registro.pk %}" aria-label="Abrir foto anotada de la captura {{ registro.pk }}">
+          <img src="{% url 'web:inspeccion_imagen' registro.pk %}" alt="Foto de arándanos anotada por la IA" loading="lazy">
+        </a>
+        <h3>{{ registro.lote|default:"Sin lote asignado" }}</h3>
+        <p>{{ registro.creada|date:"d/m/Y H:i" }}</p>
+        <p>{{ captura.frutos }} fruto{{ captura.frutos|pluralize }} · {{ captura.indicios }} indicio{{ captura.indicios|pluralize }}</p>
+      </article>
+      {% endwith %}
+      {% endfor %}
+    </div>
   </section>
-
-  <div class="detecciones-resultados">
-    <section class="detecciones-tarjeta" aria-labelledby="detecciones-fotos">
-      <h2 id="detecciones-fotos">Fotografías de las capturas</h2>
-      <div class="detecciones-vacio">
-        {% icono "cajas" %}
-        <p>Las fotografías aparecerán aquí cuando se conecten las capturas.</p>
-      </div>
-    </section>
-    <section class="detecciones-tarjeta" aria-labelledby="detecciones-clasificacion">
-      <h2 id="detecciones-clasificacion">Clasificación de arándanos</h2>
-      <dl class="detecciones-clases">
-        <div><dt>Calidad</dt><dd>Inmaduros, sin bloom y secos.</dd></div>
-        <div><dt>Condición</dt><dd>Rasgados y otras condiciones por confirmar.</dd></div>
-      </dl>
-      <p>Los resultados de IA están pendientes de conexión.</p>
-    </section>
+  {% if pagina.has_other_pages %}
+  <nav aria-label="Páginas de detecciones">
+    {% if pagina.has_previous %}<a class="btn" href="{% querystring pagina=pagina.previous_page_number %}">Anterior</a>{% endif %}
+    <span>Página {{ pagina.number }} de {{ pagina.paginator.num_pages }}</span>
+    {% if pagina.has_next %}<a class="btn" href="{% querystring pagina=pagina.next_page_number %}">Siguiente</a>{% endif %}
+  </nav>
+  {% endif %}
+  {% else %}
+  <div class="detecciones-vacio">
+    {% icono "cajas" %}
+    {% if lote %}
+      <p>No hay capturas analizadas para ese lote.</p>
+    {% else %}
+      <p>Aún no hay capturas analizadas. Las fotos aparecerán aquí después de procesarse en la app.</p>
+    {% endif %}
   </div>
+  {% endif %}
 </div>
 {% endblock %}

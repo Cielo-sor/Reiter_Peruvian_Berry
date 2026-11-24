@@ -74,3 +74,23 @@ class InspeccionesTests(TestCase):
         self.assertEqual(self.api.get(self.ruta).status_code, 200)
         self.client.force_login(self.operador)
         self.assertContains(self.client.get("/inspecciones/"), "Todavía no hay inspecciones.")
+
+    def test_web_filtra_detecciones_muestra_imagen_y_lista_casetas(self):
+        from campo.models import Caseta
+
+        Inspeccion.objects.create(usuario=self.operador, lote="LOTE-NORTE",
+                                  detecciones=[{"category": "condicion"}],
+                                  original=b"original", anotada=b"anotada")
+        Inspeccion.objects.create(usuario=self.operador, lote="LOTE-SUR",
+                                  original=b"original", anotada=b"anotada")
+        Caseta.objects.create(codigo="C01", nombre="Caseta de ensayo")
+        self.client.force_login(self.operador)
+        detecciones = self.client.get("/detecciones/", {"lote": "norte"})
+        self.assertContains(detecciones, "LOTE-NORTE")
+        self.assertNotContains(detecciones, "LOTE-SUR")
+        self.assertEqual(detecciones.context["resumen"]["condicion"], 1)
+        self.assertContains(self.client.get("/monitoreo/"), "/monitoreo/casetas/")
+        self.assertContains(self.client.get("/monitoreo/casetas/"), "Caseta de ensayo")
+        self.assertRedirects(self.client.get("/modulos-casetas/"), "/monitoreo/casetas/")
+        self.client.force_login(self.otro)
+        self.assertEqual(self.client.get("/monitoreo/casetas/").status_code, 403)

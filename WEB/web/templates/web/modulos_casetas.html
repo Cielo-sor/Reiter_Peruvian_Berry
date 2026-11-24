@@ -1,50 +1,24 @@
 {% extends "web/base.html" %}
 {% load web_tags %}
-{% block titulo %}Módulos y casetas{% endblock %}
+{% block titulo %}Casetas{% endblock %}
 {% block body_class %}pagina-modulos-casetas{% endblock %}
 {% block contenido %}
-<div class="modulos-casetas">
+<div class="modulos-casetas reiter-dashboard">
   <header class="mc-encabezado">
-    <div>
-      <h1>Módulos y casetas</h1>
-      <p class="mc-subtitulo">Organización del muestreo y seguimiento visual de las casetas por módulo.</p>
-    </div>
+    <div><h1>Casetas</h1><p class="mc-subtitulo">Casetas registradas para el monitoreo de capturas.</p></div>
+    <a class="btn" href="{% url 'web:monitoreo_reiter' %}">Volver a Monitoreo</a>
   </header>
-
-  <section class="mc-resumen" aria-label="Resumen general">
-    <div><span class="mc-etiqueta">Módulos de la empresa</span><strong>4</strong><small>Estructura confirmada</small></div>
-    <div><span class="mc-etiqueta">Casetas registradas</span><strong>—</strong><small>Pendiente de integración</small></div>
-    <div><span class="mc-etiqueta">Capturas por caseta</span><strong>—</strong><small>Pendiente de integración</small></div>
-  </section>
-
-  <div class="mc-seccion-titulo">
-    <h2>Distribución por módulo</h2>
+  <div class="rc-card rc-tabla-scroll">
+    <table class="rc-tabla" aria-label="Casetas registradas">
+      <thead><tr><th scope="col">Código</th><th scope="col">Caseta</th><th scope="col">Estado</th></tr></thead>
+      <tbody>
+        {% for caseta in casetas %}
+        <tr><td>{{ caseta.codigo }}</td><td>{{ caseta.nombre }}</td><td>{{ caseta.activa|yesno:"Activa,Inactiva" }}</td></tr>
+        {% empty %}
+        <tr><td colspan="3" class="rc-vacio">Aún no hay casetas registradas.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  <section class="mc-grid" aria-label="Listado de módulos">
-    <article class="mc-modulo">
-      <div class="mc-modulo-cab"><div class="mc-icono" aria-hidden="true">⌂</div><div><h3>Módulo 1</h3><p>Rosita</p></div><span class="mc-chip">M01</span></div>
-      <div class="mc-fila"><span>Casetas del módulo</span><strong>Por registrar</strong></div>
-      <div class="mc-fila"><span>Fotografías recibidas</span><strong>Sin conectar</strong></div>
-      <div class="mc-vacio">ℹ Las casetas de este módulo aparecerán aquí cuando se registren.</div>
-    </article>
-    <article class="mc-modulo">
-      <div class="mc-modulo-cab"><div class="mc-icono" aria-hidden="true">⌂</div><div><h3>Módulo 2</h3><p>Nombre por confirmar</p></div><span class="mc-chip">M02</span></div>
-      <div class="mc-fila"><span>Casetas del módulo</span><strong>Por registrar</strong></div>
-      <div class="mc-fila"><span>Fotografías recibidas</span><strong>Sin conectar</strong></div>
-      <div class="mc-vacio">ℹ Las casetas de este módulo aparecerán aquí cuando se registren.</div>
-    </article>
-    <article class="mc-modulo">
-      <div class="mc-modulo-cab"><div class="mc-icono" aria-hidden="true">⌂</div><div><h3>Módulo 3</h3><p>Nombre por confirmar</p></div><span class="mc-chip">M03</span></div>
-      <div class="mc-fila"><span>Casetas del módulo</span><strong>Por registrar</strong></div>
-      <div class="mc-fila"><span>Fotografías recibidas</span><strong>Sin conectar</strong></div>
-      <div class="mc-vacio">ℹ Las casetas de este módulo aparecerán aquí cuando se registren.</div>
-    </article>
-    <article class="mc-modulo">
-      <div class="mc-modulo-cab"><div class="mc-icono" aria-hidden="true">⌂</div><div><h3>Módulo 4</h3><p>Nombre por confirmar</p></div><span class="mc-chip">M04</span></div>
-      <div class="mc-fila"><span>Casetas del módulo</span><strong>Por registrar</strong></div>
-      <div class="mc-fila"><span>Fotografías recibidas</span><strong>Sin conectar</strong></div>
-      <div class="mc-vacio">ℹ Las casetas de este módulo aparecerán aquí cuando se registren.</div>
-    </article>
-  </section>
 </div>
 {% endblock %}

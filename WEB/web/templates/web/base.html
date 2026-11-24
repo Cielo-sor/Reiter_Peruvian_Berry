@@ -57,7 +57,7 @@
     <span class="txt">Detecciones</span>
 </a>
 <a class="item" href="{% url 'web:monitoreo_reiter' %}"
-   {% if n == 'monitoreo_reiter' %}aria-current="page"{% endif %}>
+   {% if n == 'monitoreo_reiter' or n == 'modulos_casetas' %}aria-current="page"{% endif %}>
     {% icono "actividad" %}
     <span class="txt">Monitoreo</span>
 </a>
@@ -99,10 +99,6 @@
 </a>
 {% endif %}
 
-<a class="item" href="{% url 'web:modulos_casetas' %}">
-    {% icono "lote" %}
-    <span class="txt">Módulos y casetas</span>
-</a>
 {% endwith %}
 
     <div class="pie-lateral">

@@ -49,5 +49,6 @@ urlpatterns = [
     path("ia/tareas/<uuid:pk>/reencolar/", views.ia_reencolar, name="ia_reencolar"),
     path("auditoria/", views.auditoria, name="auditoria"),
     path("administracion/limpieza/", views.limpieza_fotos, name="limpieza"),  # v1.3.1 (ADR-W-008)
-    path("modulos-casetas/",views.modulos_casetas, name="modulos_casetas"),
+    path("monitoreo/casetas/", views.modulos_casetas, name="modulos_casetas"),
+    path("modulos-casetas/", views.casetas_anterior, name="casetas_anterior"),
 ]
