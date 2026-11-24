@@ -1,0 +1,258 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Limpieza de fotos{% endblock %}
+
+
+{% block contenido %}
+<div class="depuracion-panel">
+
+  <header class="depuracion-portada">
+    <div>
+      <h1>Limpieza de fotos</h1>
+      <p>
+        Elimina fotos antiguas sin indicios o descartadas por la IA.
+        Las fotos asociadas a un caso quedan excluidas.
+      </p>
+    </div>
+
+    <span class="depuracion-emblema" aria-hidden="true">
+      {% icono "basura" %}
+    </span>
+  </header>
+
+  <!-- RESUMEN -->
+  <section class="depuracion-resumen" aria-label="Resumen de limpieza">
+
+    <div class="depuracion-metrica depuracion-metrica-destacada">
+      <span>{% icono "camara" %} Fotos candidatas</span>
+      <strong>{{ candidatas }}</strong>
+      <small>Con más de {{ dias }} días de antigüedad</small>
+    </div>
+
+    <div class="depuracion-metrica">
+      <span>{% icono "basura" %} Eliminadas en total</span>
+      <strong>{{ total_borradas }}</strong>
+      <small>Historial acumulado de eliminación</small>
+    </div>
+
+    <div class="depuracion-metrica">
+      <span>{% icono "nube" %} Pendientes en Cloudinary</span>
+      <strong>{{ pendientes_nube }}</strong>
+      <small>El worker reintenta cada minuto</small>
+    </div>
+
+  </section>
+
+  <div class="depuracion-proceso">
+
+    <!-- PASO 1 -->
+    <section class="depuracion-tarjeta"
+             aria-labelledby="depuracion-calcular-titulo">
+
+      <header class="depuracion-paso">
+        <span class="depuracion-numero">1</span>
+        <div>
+          <h2 id="depuracion-calcular-titulo">Define la antigüedad</h2>
+          <p>Calcula cuántas fotos cumplen el criterio.</p>
+        </div>
+      </header>
+
+      <form method="get" class="depuracion-calcular">
+        <label for="dias">
+          Fotos tomadas hace más de
+        </label>
+
+        <div class="depuracion-dias">
+          <input id="dias"
+                 name="dias"
+                 type="number"
+                 min="1"
+                 max="3650"
+                 value="{{ dias }}"
+                 aria-describedby="depuracion-dias-ayuda"
+                 required>
+          <span>días</span>
+        </div>
+
+        <p id="depuracion-dias-ayuda" class="depuracion-ayuda">
+          Solo se consideran fotos con resultado «Sin indicios»
+          o «Descartado por la IA» que no tengan un caso asociado.
+        </p>
+
+        <button class="depuracion-btn depuracion-btn-azul" type="submit">
+          {% icono "refrescar" %} Calcular fotos
+        </button>
+      </form>
+
+      <div class="depuracion-aclaracion">
+        {% icono "info" %}
+        <span>Calcular no elimina ninguna foto.</span>
+      </div>
+    </section>
+
+    <!-- PASO 2 -->
+    <section class="depuracion-tarjeta"
+             aria-labelledby="depuracion-confirmar-titulo">
+
+      <header class="depuracion-paso">
+        <span class="depuracion-numero">2</span>
+        <div>
+          <h2 id="depuracion-confirmar-titulo">Revisa y confirma</h2>
+          <p>La eliminación es permanente.</p>
+        </div>
+      </header>
+
+      {% if error %}
+        <div class="depuracion-error" role="alert">
+          {% icono "alerta" %}
+          <span>{{ error }}</span>
+        </div>
+      {% endif %}
+
+      {% if candidatas %}
+        <div class="depuracion-advertencia">
+          {% icono "alerta" %}
+          <div>
+            <strong>{{ candidatas }} foto(s) cumplen el criterio</strong>
+            <p>
+              Se eliminarán de la base de datos y de Cloudinary.
+              También se eliminarán de los celulares al sincronizar,
+              con la app 0.5.1 o superior.
+            </p>
+            <p>
+              <strong>No se puede deshacer.</strong>
+              Cada ejecución elimina hasta 2 000 fotos.
+            </p>
+          </div>
+        </div>
+
+        <form method="post" class="depuracion-confirmar">
+          {% csrf_token %}
+          <input type="hidden" name="dias" value="{{ dias }}">
+
+          <label for="confirmacion">
+            Para confirmar, escribe <strong>{{ palabra }}</strong>
+          </label>
+
+          <input id="confirmacion"
+                 name="confirmacion"
+                 type="text"
+                 autocomplete="off"
+                 autocapitalize="off"
+                 spellcheck="false"
+                 aria-describedby="depuracion-confirmacion-ayuda"
+                 required>
+
+          <p id="depuracion-confirmacion-ayuda"
+             class="depuracion-ayuda">
+            Se aplicará el criterio calculado: más de {{ dias }} días.
+            Si cambias la antigüedad, vuelve a calcular antes de confirmar.
+          </p>
+
+          <button class="depuracion-btn depuracion-btn-eliminar"
+                  type="submit">
+            {% icono "basura" %} Eliminar fotos seleccionadas
+          </button>
+        </form>
+      {% else %}
+        <div class="depuracion-sin-candidatas">
+          <span>{% icono "check" %}</span>
+          <strong>No hay fotos candidatas</strong>
+          <p>
+            No se encontraron fotos que cumplan el criterio
+            de más de {{ dias }} días.
+          </p>
+        </div>
+      {% endif %}
+
+    </section>
+
+  </div>
+
+  <!-- HISTORIAL -->
+  <section class="depuracion-historial"
+           aria-labelledby="depuracion-historial-titulo">
+
+    <header class="depuracion-historial-cabecera">
+      <div>
+        <h2 id="depuracion-historial-titulo">Últimas fotos eliminadas</h2>
+        <p>Consulta el motivo, el responsable y el estado del borrado en la nube.</p>
+      </div>
+      <span class="depuracion-historial-icono">{% icono "reloj" %}</span>
+    </header>
+
+    <div class="depuracion-tabla-scroll"
+         role="region"
+         aria-label="Historial de fotos eliminadas"
+         tabindex="0">
+
+      <table class="depuracion-tabla">
+        <thead>
+          <tr>
+            <th scope="col">Fecha de eliminación</th>
+            <th scope="col">Motivo</th>
+            <th scope="col">Responsable</th>
+            <th scope="col">Cloudinary</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for d in ultimas %}
+            <tr>
+              <td>
+                <time datetime="{{ d.deleted_at|date:'c' }}">
+                  {{ d.deleted_at|date:"d/m/Y" }}
+                  <small>{{ d.deleted_at|date:"H:i" }}</small>
+                </time>
+              </td>
+
+              <td>{{ d.get_reason_display }}</td>
+
+              <td>{{ d.deleted_by.full_name|default:"—" }}</td>
+
+              <td>
+                {% if d.cloud_deleted_at %}
+                  <span class="depuracion-estado depuracion-estado-listo">
+                    {% icono "check" %} Eliminada
+                  </span>
+                {% else %}
+                  <span class="depuracion-estado depuracion-estado-pendiente">
+                    {% icono "reloj" %} Pendiente
+                  </span>
+
+                  {% if d.cloud_error %}
+                    <details class="depuracion-error-nube">
+                      <summary>Ver detalle</summary>
+                      <pre>{{ d.cloud_error }}</pre>
+                    </details>
+                  {% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">
+                <div class="depuracion-vacio">
+                  {% icono "reloj" %}
+                  <strong>Todavía no hay fotos eliminadas.</strong>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <p class="depuracion-nota-final">
+    {% icono "info" %}
+    <span>
+      Para eliminar una sesión completa, ábrela desde
+      <a href="{% url 'web:sesiones' %}">Sesiones</a>
+      y selecciona «Eliminar sesión».
+    </span>
+  </p>
+
+</div>
+{% endblock %}

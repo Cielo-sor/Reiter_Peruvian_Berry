@@ -1,0 +1,91 @@
+{% extends "web/base.html" %}
+{% load static web_tags %}
+{% block titulo %}Ingresar · Monitoreo de Arándanos{% endblock %}
+{% block body_class %}pagina-acceso{% endblock %}
+{% block publico %}
+<div class="login-reiter">
+
+  <div class="login-reiter-mensaje">
+    <h2>Cada arándano cuenta.</h2>
+    <p>Tú haces posible el progreso.</p>
+  </div>
+
+  <div class="login-reiter-columna">
+    <section class="login-reiter-tarjeta"
+             aria-labelledby="titulo-login">
+
+      <header class="login-reiter-cabecera">
+        <img
+          class="login-reiter-logo"
+          src="{% static 'web/img/Berry-logo.jpg' %}"
+          alt="Reiter Peruvian Berry"
+          width="600"
+          height="308">
+
+        <h1 id="titulo-login">Iniciar sesión</h1>
+      </header>
+
+      {% include "web/partials/mensajes.html" %}
+
+      <form method="post"
+            novalidate
+            id="form-ingreso"
+            class="formulario">
+
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ next }}">
+
+        {% if form.non_field_errors %}
+          <ul class="mensajes" role="alert">
+            {% for e in form.non_field_errors %}
+              <li class="error"
+                  data-tipo="error"
+                  data-sin-toast="1">
+                {% icono "circulo-alerta" %}
+                <span>{{ e }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <div class="campo">
+          <label for="id_email">Correo electrónico</label>
+          {{ form.email }}
+          {{ form.email.errors }}
+        </div>
+
+        <div class="campo">
+          <label for="id_password">Contraseña</label>
+
+          <div class="campo-clave">
+            {{ form.password }}
+
+            <button type="button"
+                    class="mostrar"
+                    data-mostrar="id_password"
+                    aria-controls="id_password"
+                    aria-pressed="false">
+              Mostrar
+            </button>
+          </div>
+
+          {{ form.password.errors }}
+        </div>
+
+        <button class="btn btn-primario login-reiter-boton"
+                type="submit">
+          Ingresar {% icono "ingresar" %}
+        </button>
+      </form>
+
+      <details class="login-reiter-ayuda">
+        <summary>¿Problemas para ingresar?</summary>
+        <p>
+          Si olvidaste tu contraseña o necesitas una cuenta,
+          contacta al administrador de la plataforma.
+        </p>
+      </details>
+    </section>
+  </div>
+</div>
+{% endblock %}

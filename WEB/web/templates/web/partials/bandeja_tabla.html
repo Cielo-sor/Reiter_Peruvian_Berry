@@ -1,0 +1,188 @@
+{% load web_tags %}
+
+<div id="bandeja"
+     class="casos-resultados"
+     hx-get="{{ request.get_full_path }}"
+     hx-swap="outerHTML"
+     hx-trigger="every {{ WEB.BANDEJA_POLL_SECONDS }}s [document.visibilityState === 'visible']"
+     data-intervalo="{{ WEB.BANDEJA_POLL_SECONDS }}"
+     data-total="{{ page.paginator.count }}">
+
+  <div class="casos-tabla-tarjeta">
+
+    <header class="casos-tabla-cabecera">
+      <h2>{% icono "casos" %} Bandeja de revisión</h2>
+      <span class="casos-total">
+        {{ page.paginator.count }} caso{{ page.paginator.count|pluralize }}
+      </span>
+    </header>
+
+    <div class="casos-tabla-scroll"
+         role="region"
+         aria-label="Listado de casos"
+         tabindex="0">
+
+      <table class="casos-tabla">
+        <thead>
+          <tr>
+            <th scope="col">Foto</th>
+            <th scope="col">Ubicación</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Análisis IA</th>
+            <th scope="col">Captura</th>
+            <th scope="col">Aviso</th>
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for c in page.object_list %}
+            <tr data-caso="{{ c.pk }}">
+
+              <td>
+                <a class="casos-foto"
+                   href="{% url 'web:caso' c.pk %}"
+                   aria-label="Ver foto del caso {{ c.pk }}">
+                  <img class="foto-carga"
+                       src="{{ c.thumb_url }}"
+                       alt="Foto del caso {{ c.pk|stringformat:'s'|slice:':8' }}"
+                       loading="lazy"
+                       width="80"
+                       height="64">
+                </a>
+              </td>
+
+              <td class="casos-ubicacion">
+                <a href="{% url 'web:caso' c.pk %}">
+                  {{ c.lot.code }} · Hilera {{ c.row.number }}
+                </a>
+
+                <small>{{ c.get_lateral_code_display }}</small>
+
+                <small>
+                  {% if c.segment %}
+                    Seg. {{ c.segment.code }}
+                  {% endif %}
+                  {% if c.marker %}
+                    {% if c.segment %} · {% endif %}
+                    Marc. {{ c.marker.code }}
+                  {% endif %}
+                  {% if not c.segment and not c.marker %}
+                    Sin segmento ni marcador
+                  {% endif %}
+                </small>
+              </td>
+
+              <td>
+                <span class="casos-estado" data-estado="{{ c.status }}">
+                  <span class="casos-estado-punto" aria-hidden="true"></span>
+                  {{ c.get_status_display }}
+                </span>
+
+                {% if c.origin == 'MANUAL' %}
+                  <span class="casos-origen">Registro manual</span>
+                {% endif %}
+              </td>
+
+              <td class="casos-analisis">
+                {% if c.detections_count %}
+                  <strong>
+                    {{ c.detections_count }}
+                    detecci{{ c.detections_count|pluralize:"ón,ones" }}
+                  </strong>
+
+                  <small>
+                    Confianza máxima: {{ c.max_confidence|pctnum:1 }} %
+                  </small>
+
+                  <span class="casos-confianza" aria-hidden="true">
+                    <span style="width: {{ c.max_confidence|pctnum:1 }}%"></span>
+                  </span>
+                {% else %}
+                  <span class="casos-sin-dato">Sin detecciones registradas</span>
+                {% endif %}
+              </td>
+
+              <td class="casos-fecha">
+                <time datetime="{{ c.captured_at|date:'c' }}">
+                  {{ c.captured_at|date:"d/m/Y" }}
+                  <span>{{ c.captured_at|date:"H:i" }}</span>
+                </time>
+                <small>Abierto hace {{ c.opened_at|timesince }}</small>
+              </td>
+
+              <td class="casos-aviso-celda">
+                {% aviso_caso c %}
+              </td>
+
+              <td>
+                <a class="casos-ver"
+                   href="{% url 'web:caso' c.pk %}">
+                  Ver caso {% icono "der" %}
+                </a>
+              </td>
+            </tr>
+
+          {% empty %}
+            <tr>
+              <td colspan="7">
+                <div class="casos-vacio">
+                  <span class="casos-vacio-icono">
+                    {% icono "brote" %}
+                  </span>
+                  <strong>No hay casos con estos filtros</strong>
+                  <p>
+                    Prueba con otro lote, estado o rango de fechas.
+                    La bandeja se actualiza automáticamente mientras
+                    mantienes esta pestaña visible.
+                  </p>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="casos-paginacion">
+      <div class="casos-paginacion-info">
+        <span>
+          {{ page.start_index }}–{{ page.end_index }}
+          de {{ page.paginator.count }} caso{{ page.paginator.count|pluralize }}
+        </span>
+
+      </div>
+
+      <nav class="casos-paginas" aria-label="Páginas de casos">
+        {% url 'web:bandeja' as base %}
+
+        {% if page.has_previous %}
+          <a href="{{ base }}{% querystring pagina=page.previous_page_number %}"
+             hx-get="{{ base }}{% querystring pagina=page.previous_page_number %}"
+             hx-target="#bandeja"
+             hx-swap="outerHTML"
+             hx-push-url="true"
+             aria-label="Página anterior">
+            {% icono "izq" %}
+          </a>
+        {% endif %}
+
+        <span class="casos-pagina-actual">
+          {{ page.number }} / {{ page.paginator.num_pages }}
+        </span>
+
+        {% if page.has_next %}
+          <a href="{{ base }}{% querystring pagina=page.next_page_number %}"
+             hx-get="{{ base }}{% querystring pagina=page.next_page_number %}"
+             hx-target="#bandeja"
+             hx-swap="outerHTML"
+             hx-push-url="true"
+             aria-label="Página siguiente">
+            {% icono "der" %}
+          </a>
+        {% endif %}
+      </nav>
+    </footer>
+
+  </div>
+</div>

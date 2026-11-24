@@ -1,0 +1,202 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Auditoría{% endblock %}
+
+{% block migas %}
+  {% icono "auditoria" %}
+  <span>Administración</span>
+  <span class="sep">›</span>
+  <span>Auditoría</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="auditoria-panel">
+
+  <header class="auditoria-portada">
+    <div>
+      <span class="auditoria-eyebrow">TRAZABILIDAD DE LA PLATAFORMA</span>
+      <h1>Registro de actividad</h1>
+      <p>Consulta quién realizó cada acción y qué información cambió.</p>
+    </div>
+
+    <span class="auditoria-emblema" aria-hidden="true">
+      {% icono "auditoria" %}
+    </span>
+  </header>
+
+  <!-- BÚSQUEDA -->
+  <form class="auditoria-busqueda"
+        method="get"
+        action="{% url 'web:auditoria' %}"
+        role="search">
+
+    <div class="auditoria-busqueda-campo">
+      <label for="auditoria-q">Buscar por acción o identificador</label>
+      <div class="auditoria-input">
+        {% icono "buscar" %}
+        <input type="search"
+               id="auditoria-q"
+               name="q"
+               value="{{ q|default_if_none:'' }}"
+               placeholder="Ej.: CASO_DECIDIDO o 6175028e…">
+      </div>
+    </div>
+
+    <button class="auditoria-boton" type="submit">
+      {% icono "buscar" %} Buscar
+    </button>
+
+    {% if q %}
+      <a class="auditoria-limpiar" href="{% url 'web:auditoria' %}">
+        {% icono "x" %} Limpiar
+      </a>
+    {% endif %}
+  </form>
+
+  <!-- HISTORIAL -->
+  <section class="auditoria-historial"
+           aria-labelledby="auditoria-historial-titulo">
+
+    <header class="auditoria-seccion-cabecera">
+      <div>
+        <h2 id="auditoria-historial-titulo">
+          {% if q %}Resultados de búsqueda{% else %}Historial de eventos{% endif %}
+        </h2>
+        {% if q %}
+          <p>Coincidencias para «{{ q }}».</p>
+        {% endif %}
+      </div>
+
+      <span class="auditoria-contador">
+        {{ page.paginator.count }}
+        evento{{ page.paginator.count|pluralize }}
+      </span>
+    </header>
+
+    <div class="auditoria-eventos">
+      {% for e in page.object_list %}
+        <article class="auditoria-evento">
+
+          <div class="auditoria-evento-fecha">
+            <span class="auditoria-evento-punto" aria-hidden="true"></span>
+            <time datetime="{{ e.timestamp|date:'c' }}">
+              <strong>{{ e.timestamp|date:"d/m/Y" }}</strong>
+              <span>{{ e.timestamp|date:"H:i:s" }}</span>
+            </time>
+          </div>
+
+          <div class="auditoria-evento-cuerpo">
+            <header class="auditoria-evento-cabecera">
+              <h3>{{ e.action }}</h3>
+
+              <span class="auditoria-usuario">
+                {% icono "usuario" %}
+                {{ e.user.full_name|default:"Sistema" }}
+              </span>
+            </header>
+
+            <div class="auditoria-entidad">
+              <span class="auditoria-entidad-tipo">
+                {{ e.entity_type|default:"Sin entidad registrada" }}
+              </span>
+
+              {% if e.entity_id %}
+                <span class="auditoria-entidad-id">
+                  <span>ID</span>
+                  <code>{{ e.entity_id }}</code>
+                </span>
+              {% endif %}
+            </div>
+
+            {% with diferencias=e|cambios %}
+              {% if diferencias %}
+                <details class="auditoria-cambios">
+                  <summary>
+                    {% icono "editar" %}
+                    Ver cambios registrados
+                  </summary>
+
+                  <div class="auditoria-cambios-lista">
+                    {% for campo, antes, despues in diferencias %}
+                      <div class="auditoria-cambio">
+                        <h4>{{ campo }}</h4>
+
+                        <div class="auditoria-comparacion">
+                          <div class="auditoria-valor auditoria-valor-anterior">
+                            <span>Antes</span>
+                            <pre>{{ antes|default_if_none:"—" }}</pre>
+                          </div>
+
+                          <div class="auditoria-valor auditoria-valor-nuevo">
+                            <span>Después</span>
+                            <pre>{{ despues|default_if_none:"—" }}</pre>
+                          </div>
+                        </div>
+                      </div>
+                    {% endfor %}
+                  </div>
+                </details>
+              {% else %}
+                <p class="auditoria-sin-cambios">
+                  Sin detalle de cambios registrado.
+                </p>
+              {% endif %}
+            {% endwith %}
+          </div>
+
+        </article>
+      {% empty %}
+        <div class="auditoria-vacio">
+          <span>{% icono "auditoria" %}</span>
+          <h3>
+            {% if q %}
+              No se encontraron coincidencias
+            {% else %}
+              No hay eventos registrados
+            {% endif %}
+          </h3>
+          <p>
+            {% if q %}
+              Prueba con otra acción o identificador.
+            {% else %}
+              Las acciones registradas por la plataforma aparecerán aquí.
+            {% endif %}
+          </p>
+        </div>
+      {% endfor %}
+    </div>
+
+    <footer class="auditoria-paginacion">
+      <span>
+        {% if page.paginator.count %}
+          Mostrando {{ page.start_index }}–{{ page.end_index }}
+          de {{ page.paginator.count }} eventos
+        {% else %}
+          Sin eventos para mostrar
+        {% endif %}
+      </span>
+
+      <nav class="auditoria-paginas" aria-label="Páginas de auditoría">
+        {% if page.has_previous %}
+          <a href="{% querystring pagina=page.previous_page_number %}">
+            {% icono "izq" %} Anterior
+          </a>
+        {% endif %}
+
+        <span class="auditoria-pagina-actual">
+          {{ page.number }} / {{ page.paginator.num_pages }}
+        </span>
+
+        {% if page.has_next %}
+          <a href="{% querystring pagina=page.next_page_number %}">
+            Siguiente {% icono "der" %}
+          </a>
+        {% endif %}
+      </nav>
+    </footer>
+
+  </section>
+
+</div>
+{% endblock %}

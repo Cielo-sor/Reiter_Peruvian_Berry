@@ -1,0 +1,225 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Estado de la IA{% endblock %}
+
+
+{% block contenido %}
+<div class="ia-pagina">
+
+  <header class="ia-encabezado">
+    <span class="ia-emblema">{% icono "ia" %}</span>
+    <div>
+      <h1>Estado del análisis con IA</h1>
+    </div>
+  </header>
+
+  <section class="ia-modelo" aria-labelledby="ia-modelo-titulo">
+    <header class="ia-modelo-cabecera">
+      <div class="ia-modelo-identidad">
+        <span class="ia-modelo-icono">{% icono "chip" %}</span>
+        <div>
+          <span class="ia-sobretitulo">DETECTOR CONFIGURADO</span>
+          <h2 id="ia-modelo-titulo">Modelo activo</h2>
+        </div>
+      </div>
+
+      {% if user.is_superuser %}
+        <a class="ia-gestionar"
+           href="{% url 'admin:ia_modelconfig_changelist' %}">
+          {% icono "gestion" %} Gestionar modelos
+        </a>
+      {% endif %}
+    </header>
+
+    {% if modelo %}
+      <p class="ia-modelo-nombre">{{ modelo }}</p>
+
+      <div class="ia-clases">
+        <span class="ia-clases-titulo">Clases configuradas</span>
+        <div class="ia-clases-lista">
+          {% for c in modelo.classes %}
+            <span>{{ c }}</span>
+          {% empty %}
+            <span>Sin clases configuradas</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <details class="ia-configuracion">
+        <summary>Configuración del modelo</summary>
+        <dl>
+          <div>
+            <dt>Umbral de confianza</dt>
+            <dd>{{ modelo.conf_threshold }}</dd>
+          </div>
+          <div>
+            <dt>IoU</dt>
+            <dd>{{ modelo.iou_threshold }}</dd>
+          </div>
+          <div>
+            <dt>Tamaño de entrada</dt>
+            <dd>{{ modelo.imgsz }} px</dd>
+          </div>
+          {% if modelo.tiling %}
+            <div>
+              <dt>Tiling</dt>
+              <dd>{{ modelo.tiling }}</dd>
+            </div>
+          {% endif %}
+        </dl>
+      </details>
+    {% else %}
+      <div class="ia-sin-modelo" role="alert">
+        {% icono "alerta" %}
+        <div>
+          <strong>No hay un modelo activo</strong>
+          <p>
+            Las capturas nuevas no podrán analizarse hasta que
+            un administrador active un modelo en Gestión.
+          </p>
+        </div>
+      </div>
+    {% endif %}
+
+  </section>
+
+  <section class="ia-resumen" aria-labelledby="ia-resumen-titulo">
+    <header class="ia-seccion-cabecera">
+      <h2 id="ia-resumen-titulo">Resumen del procesamiento</h2>
+      <span class="ia-total">{{ total }} registros</span>
+    </header>
+
+    <div class="ia-indicadores">
+      {% for value, label in estados %}
+        <article class="ia-indicador" data-estado="{{ value }}">
+          <div class="ia-indicador-titulo">
+            <span class="ia-punto" aria-hidden="true"></span>
+            <h3>{{ label }}</h3>
+          </div>
+
+          <strong class="ia-indicador-valor">
+            {{ conteo|get:value }}
+          </strong>
+
+          <span class="ia-indicador-proporcion">
+            {{ conteo|get:value|pct:total }} del total
+          </span>
+        </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="ia-errores" aria-labelledby="ia-errores-titulo">
+    <header class="ia-errores-cabecera">
+      <div>
+        <h2 id="ia-errores-titulo">
+          {% icono "alerta" %} Errores de análisis
+        </h2>
+        <p>Últimos 100 registros con error.</p>
+      </div>
+      <span class="ia-total">{{ errores|length }} mostrados</span>
+    </header>
+
+    <div class="ia-tabla-scroll"
+         role="region"
+         aria-label="Listado de errores de análisis"
+         tabindex="0">
+
+      <table class="ia-tabla">
+        <thead>
+          <tr>
+            <th scope="col">Foto</th>
+            <th scope="col">Modelo</th>
+            <th scope="col">Intentos</th>
+            <th scope="col">Finalización</th>
+            <th scope="col">Detalle del error</th>
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for t in errores %}
+            <tr>
+              <td>
+                <a class="ia-foto-enlace"
+                   href="{% url 'web:captura' t.capture_id %}"
+                   aria-label="Ver foto {{ t.capture_id }}">
+                  {% icono "ojo" %}
+                  <code>{{ t.capture_id|stringformat:"s"|slice:":8" }}</code>
+                </a>
+              </td>
+
+              <td>{{ t.model_config.version|default:"—" }}</td>
+
+              <td>
+                <span class="ia-intentos">{{ t.attempts }}</span>
+              </td>
+
+              <td class="ia-fecha">
+                {% if t.finished_at %}
+                  <time datetime="{{ t.finished_at|date:'c' }}">
+                    {{ t.finished_at|date:"d/m/Y" }}
+                    <small>{{ t.finished_at|date:"H:i" }}</small>
+                  </time>
+                {% else %}
+                  <span>Sin fecha</span>
+                {% endif %}
+              </td>
+
+              <td class="ia-error-celda">
+                {% if t.error_message %}
+                  <details class="ia-error-detalle">
+                    <summary>
+                      {{ t.error_message|truncatechars:90 }}
+                    </summary>
+                    <pre>{{ t.error_message }}</pre>
+                  </details>
+                {% else %}
+                  <span>Sin detalle registrado.</span>
+                {% endif %}
+              </td>
+
+              <td>
+                {% if puede.ia_reencolar %}
+                  <form method="post"
+                        action="{% url 'web:ia_reencolar' t.pk %}">
+                    {% csrf_token %}
+                    <button class="ia-reintentar"
+                            type="submit"
+                            title="Volver a colocar la foto en la cola de análisis">
+                      {% icono "refrescar" %}
+                      Reintentar
+                    </button>
+                  </form>
+                {% endif %}
+              </td>
+            </tr>
+
+          {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="ia-vacio">
+                  <span>{% icono "ok" %}</span>
+                  <strong>No hay errores de análisis registrados</strong>
+                  <p>Los análisis que fallen aparecerán aquí.</p>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if puede.ia_reencolar and errores %}
+      <p class="ia-reintento-nota">
+        {% icono "info" %}
+        Reintentar devuelve la foto a la cola.
+        El procesamiento se realizará cuando el servicio de análisis esté disponible.
+      </p>
+    {% endif %}
+  </section>
+
+
+</div>
+{% endblock %}

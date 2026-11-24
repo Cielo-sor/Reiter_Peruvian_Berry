@@ -1,0 +1,174 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Reportes{% endblock %}
+{% block migas %}{% icono "reportes" %}<span>Reportes</span>{% endblock %}
+
+{% block contenido %}
+<div class="reportes-pagina modulos-casetas">
+  <header class="mc-encabezado">
+    <div>
+      <h1>Reportes y exportaciones</h1>
+      <p class="mc-subtitulo">Descarga los registros de revisión o guarda un resumen del monitoreo en PDF.</p>
+    </div>
+  </header>
+
+  <div class="reportes-distribucion">
+
+    <section class="reportes-tarjeta"
+             aria-labelledby="reporte-csv-titulo">
+
+      <header class="reportes-cabecera">
+        <div class="reportes-identidad">
+          <span class="reportes-icono">
+            {% icono "descargar" %}
+          </span>
+          <div>
+            <h2 id="reporte-csv-titulo">Casos y decisiones</h2>
+          </div>
+        </div>
+        <span class="reportes-formato">CSV · UTF-8</span>
+      </header>
+
+      <p class="reportes-descripcion">
+        Descarga una fila por caso con su ubicación, estado,
+        decisión del especialista, modelo de IA y aviso.
+      </p>
+
+      <form class="reportes-formulario"
+            method="get"
+            action="{% url 'web:exportar_casos' %}">
+
+        <fieldset class="reportes-filtros">
+          <legend>Filtros de exportación</legend>
+          <label>
+            <span>Estado de revisión</span>
+            {{ filtro.estado }}
+          </label>
+
+          <label>
+            <span>Lote</span>
+            <select name="lote">
+              <option value="">Todos los lotes</option>
+              {% for l in lotes %}
+                {% with seleccionado=filtro.lote.value|stringformat:"s" lote_id=l.pk|stringformat:"s" %}
+                  <option value="{{ l.pk }}"
+                          {% if seleccionado == lote_id %}selected{% endif %}>
+                    {{ l.code }}
+                  </option>
+                {% endwith %}
+              {% endfor %}
+            </select>
+          </label>
+
+          <label>
+            <span>Desde</span>
+            {{ filtro.desde }}
+          </label>
+
+          <label>
+            <span>Hasta</span>
+            {{ filtro.hasta }}
+          </label>
+        </fieldset>
+
+        <div class="reportes-informacion">
+          {% icono "info" %}
+          <span>
+            Hasta <strong>{{ WEB.EXPORT_MAX_ROWS }} filas</strong>
+            por descarga. La exportación queda registrada en la auditoría.
+          </span>
+        </div>
+
+        <div class="reportes-descarga">
+          <button class="reportes-boton"
+                  type="submit"
+                  data-descarga>
+            {% icono "descargar" %}
+            Descargar CSV
+          </button>
+        </div>
+      </form>
+
+      <div class="reportes-contenido">
+        <h3>¿Qué incluye?</h3>
+        <div class="reportes-etiquetas">
+          <span>Ubicación</span>
+          <span>Estado y origen</span>
+          <span>Fechas</span>
+          <span>Decisión</span>
+          <span>Detecciones</span>
+          <span>Modelo de IA</span>
+          <span>Aviso</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="reportes-tarjeta reportes-pdf"
+             aria-labelledby="reporte-pdf-titulo">
+
+      <header class="reportes-cabecera">
+        <div class="reportes-identidad">
+          <span class="reportes-icono">
+            {% icono "imprimir" %}
+          </span>
+          <div>
+            <h2 id="reporte-pdf-titulo">Informe en PDF</h2>
+          </div>
+        </div>
+      </header>
+
+      <p class="reportes-descripcion">
+        Guarda el resumen del monitoreo o la ficha de un caso
+        desde la opción de impresión del navegador.
+      </p>
+
+      <ol class="reportes-pasos">
+        <li>
+          <span class="reportes-paso-numero" aria-hidden="true">1</span>
+          <div>
+            <strong>Abre la información</strong>
+            <p>Ingresa al Panel o al detalle de un caso.</p>
+          </div>
+        </li>
+        <li>
+          <span class="reportes-paso-numero" aria-hidden="true">2</span>
+          <div>
+            <strong>Abre la impresión</strong>
+            <p>Presiona <kbd>Ctrl</kbd> + <kbd>P</kbd>.</p>
+          </div>
+        </li>
+        <li>
+          <span class="reportes-paso-numero" aria-hidden="true">3</span>
+          <div>
+            <strong>Guarda el documento</strong>
+            <p>Selecciona «Guardar como PDF» como destino.</p>
+          </div>
+        </li>
+      </ol>
+
+      <div class="reportes-enlaces">
+        {% if puede.dashboard_ver %}
+          <a class="reportes-boton reportes-boton-secundario"
+             href="{% url 'web:dashboard' %}">
+            {% icono "panel" %} Abrir Panel
+          </a>
+        {% endif %}
+
+        {% if puede.bandeja_ver %}
+          <a class="reportes-enlace"
+             href="{% url 'web:bandeja' %}">
+            Ir a los casos {% icono "der" %}
+          </a>
+        {% endif %}
+      </div>
+
+      <p class="reportes-nota-pdf">
+        La vista de impresión oculta los menús y filtros.
+        Revisa la vista previa antes de guardar.
+      </p>
+    </section>
+
+  </div>
+</div>
+{% endblock %}

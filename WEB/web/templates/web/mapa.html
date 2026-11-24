@@ -1,0 +1,362 @@
+{% extends "web/base.html" %}
+{% load static web_tags %}
+
+{% block titulo %}Mapa{% endblock %}
+
+{% block body_class %}pagina-mapa{% endblock %}
+
+{% block head %}
+  <link rel="stylesheet"
+        href="{% static 'web/vendor/leaflet/leaflet.css' %}">
+{% endblock %}
+
+
+{% block contenido %}
+<div class="territorio-panel">
+
+  <header class="territorio-portada">
+    <div>
+      <h1>Mapa del fundo</h1>
+    </div>
+
+    <a class="territorio-enlace-plano"
+       href="{% url 'web:plano' %}">
+      {% icono "plano" %}
+      Plano de hileras
+      {% icono "der" %}
+    </a>
+  </header>
+
+  <!-- FILTROS: SE CONSERVAN -->
+  <form id="filtros-mapa" class="mapa-filtros-linea">
+
+    <label>
+      <span>Estado</span>
+      {{ filtro.estado }}
+    </label>
+
+    <label>
+      <span>Lote</span>
+      <select name="lote">
+        <option value="">Todos los lotes</option>
+
+        {% for l in lotes %}
+          {% with seleccionado=request.GET.lote|stringformat:"s" lote_id=l.pk|stringformat:"s" %}
+            <option value="{{ l.pk }}"
+                    {% if seleccionado == lote_id %}selected{% endif %}>
+              {{ l.code }}
+            </option>
+          {% endwith %}
+        {% endfor %}
+      </select>
+    </label>
+
+    <label>
+      <span>Desde</span>
+      {{ filtro.desde }}
+    </label>
+
+    <label>
+      <span>Hasta</span>
+      {{ filtro.hasta }}
+    </label>
+
+    <a class="mapa-limpiar"
+       href="{% url 'web:mapa' %}"
+       title="Restablecer filtros">
+      {% icono "deshacer" %}
+      Limpiar
+    </a>
+
+  </form>
+
+  <div class="mapa-layout territorio-distribucion">
+
+    <!-- MAPA -->
+    <section class="territorio-visor"
+             aria-labelledby="territorio-visor-titulo">
+
+      <header class="territorio-visor-cabecera">
+        <div>
+          <span class="territorio-visor-icono">
+            {% icono "mapa" %}
+          </span>
+          <h2 id="territorio-visor-titulo">Vista del fundo</h2>
+        </div>
+
+        <div class="territorio-controles no-imprimir">
+          <button type="button"
+                  class="territorio-boton"
+                  id="mapa-ajustar">
+            {% icono "ajustar" %} Ver todo
+          </button>
+
+          <button type="button"
+                  class="territorio-boton"
+                  id="mapa-fundo">
+            {% icono "pin" %} Ir al fundo
+          </button>
+        </div>
+      </header>
+
+      <div class="mapa-caja">
+        <div id="mapa"
+             data-url="{% url 'web:mapa_datos' %}"
+             data-capas="{% url 'web:mapa_capas' %}"
+             data-editar="{% url 'web:mapa_editar' %}"
+             data-caso="{{ request.GET.caso|default:'' }}"
+             role="region"
+             aria-label="Mapa satelital del fundo">
+        </div>
+
+        <div class="mapa-capa-carga" id="mapa-carga">
+          <div class="caja-carga">
+            <span class="girador"></span>
+            <span>Cargando el mapa…</span>
+          </div>
+        </div>
+
+        <p id="mapa-meta"
+           class="mapa-resumen"
+           aria-live="polite">—</p>
+      </div>
+
+      <footer class="territorio-leyenda">
+        <span class="territorio-leyenda-titulo">Estados de revisión</span>
+
+        <div class="leyenda">
+          {% badge "PENDIENTE_REVISION" "Pendiente" %}
+          {% badge "POSIBLE_PLAGA" "Posible plaga" %}
+          {% badge "CONFIRMADO_POR_IA" "Confirmado por IA" %}
+          {% badge "CONFIRMADO_POR_ESPECIALISTA" "Confirmado" %}
+          {% badge "EVIDENCIA_INSUFICIENTE" "Evidencia insuficiente" %}
+          {% badge "DESCARTADO" "Descartado" %}
+        </div>
+
+        <p>
+          Los colores indican el estado de revisión, no la gravedad.
+        </p>
+      </footer>
+    </section>
+
+    <!-- HERRAMIENTAS -->
+    <aside class="tarjeta mapa-herramientas territorio-herramientas no-imprimir"
+           aria-label="Herramientas del mapa"
+           id="mapa-herramientas"
+           data-puede-editar="{% if puede_editar %}1{% endif %}">
+
+      <header class="territorio-herramientas-cabecera">
+        <span class="territorio-eyebrow">CONTROLES DEL MAPA</span>
+        <h2>Herramientas</h2>
+        <p>Consulta distancias y organiza la vista del fundo.</p>
+      </header>
+
+      <p class="mapa-estado"
+         id="mapa-estado"
+         aria-live="polite">
+        Elige una herramienta o navega por el mapa.
+      </p>
+
+      <details open>
+        <summary>{% icono "ajustar" %} Medir distancias</summary>
+
+        <div class="herr-cuerpo">
+          <button type="button"
+                  class="btn btn-primario chico"
+                  data-herr="medir">
+            {% icono "navegar" %} Medir sobre el mapa
+          </button>
+
+          <p class="ayuda">
+            Marca dos o más puntos. Haz doble clic o pulsa
+            «Terminar» para finalizar.
+          </p>
+
+          <div class="dos-campos">
+            <label>
+              Lote A
+              <select id="dist-a">
+                <option value="">—</option>
+              </select>
+            </label>
+
+            <label>
+              Lote B
+              <select id="dist-b">
+                <option value="">—</option>
+              </select>
+            </label>
+          </div>
+
+          <button type="button"
+                  class="btn btn-secundario chico"
+                  id="dist-lotes">
+            {% icono "lote" %} Distancia entre lotes
+          </button>
+        </div>
+      </details>
+
+      <details open>
+        <summary>{% icono "ojo" %} Elementos visibles</summary>
+
+        <div class="herr-cuerpo territorio-capas">
+          <label class="casilla">
+            <input type="checkbox" id="ver-sombreado" checked>
+            <span>Sombrear lotes</span>
+          </label>
+
+          <label class="casilla">
+            <input type="checkbox" id="ver-hileras" checked>
+            <span>Mostrar hileras</span>
+          </label>
+
+          <label class="casilla">
+            <input type="checkbox" id="ver-puntos" checked>
+            <span>Mostrar puntos del fundo</span>
+          </label>
+        </div>
+      </details>
+
+      {% if puede_editar %}
+        <div class="territorio-grupo">EDICIÓN DEL FUNDO</div>
+
+        <details>
+          <summary>{% icono "lote" %} Contorno de lote</summary>
+
+          <div class="herr-cuerpo">
+            <label>
+              Lote
+              <select id="ed-lote"></select>
+            </label>
+
+            <div class="fila-botones">
+              <button type="button"
+                      class="btn btn-secundario chico"
+                      data-herr="contorno">
+                {% icono "editar" %} Dibujar
+              </button>
+
+              <button type="button"
+                      class="btn btn-fantasma chico"
+                      id="contorno-borrar">
+                {% icono "x" %} Borrar contorno
+              </button>
+            </div>
+
+            <p class="ayuda">
+              Marca cada esquina del lote sobre la imagen satelital.
+              Después pulsa «Guardar».
+            </p>
+          </div>
+        </details>
+
+        <details>
+          <summary>{% icono "plano" %} Inicio y fin de hileras</summary>
+
+          <div class="herr-cuerpo">
+            <div class="dos-campos">
+              <label>
+                Lote
+                <select id="hil-lote"></select>
+              </label>
+
+              <label>
+                Hilera
+                <select id="hil-hilera"></select>
+              </label>
+            </div>
+
+            <button type="button"
+                    class="btn btn-secundario chico"
+                    data-herr="hilera">
+              {% icono "pin" %} Marcar inicio y fin
+            </button>
+
+            <label class="casilla">
+              <input type="checkbox" id="hil-siguiente" checked>
+              <span>Al guardar, pasar a la siguiente hilera</span>
+            </label>
+
+            <p class="ayuda">
+              Primer clic: inicio. Segundo clic: fin.
+              Se guarda automáticamente.
+            </p>
+          </div>
+        </details>
+
+        <details>
+          <summary>{% icono "punto" %} Punto con nombre</summary>
+
+          <div class="herr-cuerpo">
+            <label>
+              Nombre
+              <input type="text"
+                     id="pto-nombre"
+                     maxlength="80"
+                     placeholder="Almacén principal">
+            </label>
+
+            <label>
+              Tipo
+              <select id="pto-tipo"></select>
+            </label>
+
+            <label>
+              Descripción
+              <input type="text"
+                     id="pto-desc"
+                     maxlength="200"
+                     placeholder="Opcional">
+            </label>
+
+            <button type="button"
+                    class="btn btn-secundario chico"
+                    data-herr="punto">
+              {% icono "pin" %} Colocar en el mapa
+            </button>
+          </div>
+        </details>
+      {% endif %}
+
+      <div class="fila-botones herr-acciones"
+           id="herr-acciones"
+           hidden>
+        <button type="button"
+                class="btn btn-primario chico"
+                id="herr-terminar">
+          {% icono "guardar" %} <span>Terminar</span>
+        </button>
+
+        <button type="button"
+                class="btn btn-secundario chico"
+                id="herr-deshacer">
+          {% icono "deshacer" %} Deshacer punto
+        </button>
+
+        <button type="button"
+                class="btn btn-fantasma chico"
+                id="herr-cancelar">
+          {% icono "x" %} Cancelar
+        </button>
+      </div>
+    </aside>
+
+  </div>
+
+  <p class="territorio-nota">
+    {% icono "info" %}
+    <span>
+      La ubicación del caso corresponde al GPS del celular o al marcador
+      de la hilera, no a una planta exacta. Los casos sin coordenadas
+      se consultan en el
+      <a href="{% url 'web:plano' %}">plano de hileras</a>.
+    </span>
+  </p>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'web/vendor/leaflet/leaflet.js' %}" defer></script>
+  <script src="{% static 'web/mapa.js' %}" defer></script>
+{% endblock %}

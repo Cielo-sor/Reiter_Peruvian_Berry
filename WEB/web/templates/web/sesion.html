@@ -1,0 +1,353 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Sesión{% endblock %}
+
+{% block migas %}
+  {% icono "sesiones" %}
+  <span class="sep">›</span>
+  <span>{{ s.started_at|date:"d/m/Y H:i"|default:"Sin fecha" }}</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="bitacora-panel">
+
+  <header class="bitacora-portada">
+    <div>
+      <a class="bitacora-volver" href="{% url 'web:sesiones' %}">
+        {% icono "izq" %} Todas las sesiones
+      </a>
+
+      <span class="bitacora-eyebrow">REGISTRO DE MUESTREO</span>
+      <h1>Detalle de la sesión de muestreo</h1>
+
+      <div class="bitacora-fecha-estado">
+        <span>
+          {{ s.started_at|date:"d/m/Y · H:i"|default:"Inicio sin registrar" }}
+        </span>
+        <span class="bitacora-estado">{{ s.get_status_display }}</span>
+      </div>
+    </div>
+
+    <span class="bitacora-portada-icono" aria-hidden="true">
+      {% icono "sesiones" %}
+    </span>
+  </header>
+
+  <!-- RESUMEN -->
+  <section class="bitacora-resumen" aria-label="Resumen de la sesión">
+    <div class="bitacora-dato">
+      <span class="bitacora-dato-icono">{% icono "usuario" %}</span>
+      <div>
+        <span class="bitacora-dato-label">Operador</span>
+        <strong>{{ s.operator.full_name|default:"Sin registrar" }}</strong>
+        <small>{{ s.get_mode_display }}</small>
+      </div>
+    </div>
+
+    <div class="bitacora-dato">
+      <span class="bitacora-dato-icono">{% icono "timer" %}</span>
+      <div>
+        <span class="bitacora-dato-label">Duración registrada</span>
+        <strong>
+          {% if s.started_at and s.ended_at %}
+            {{ s.started_at|timesince:s.ended_at }}
+          {% else %}
+            —
+          {% endif %}
+        </strong>
+        <small>
+          {% if s.ended_at %}
+            Fin: {{ s.ended_at|date:"d/m/Y H:i" }}
+          {% else %}
+            Sin cierre registrado
+          {% endif %}
+        </small>
+      </div>
+    </div>
+
+    <div class="bitacora-dato">
+      <span class="bitacora-dato-icono">{% icono "camara" %}</span>
+      <div>
+        <span class="bitacora-dato-label">Fotos registradas</span>
+        <strong>{{ total_fotos }}</strong>
+        <small>Capturas de esta sesión</small>
+      </div>
+    </div>
+  </section>
+
+  <nav class="bitacora-navegacion" aria-label="Secciones de la sesión">
+    <a href="#sesion-recorrido">{% icono "plano" %} Registros de la sesión</a>
+    <a href="#sesion-fotos">{% icono "galeria" %} Fotografías</a>
+    <a href="#sesion-equipos">{% icono "celulares" %} Cámaras</a>
+    <a href="#sesion-incidencias">{% icono "alerta" %} Incidencias</a>
+  </nav>
+
+  <!-- PASADAS -->
+  <section class="bitacora-seccion"
+           id="sesion-recorrido"
+           aria-labelledby="recorrido-titulo">
+
+    <header class="bitacora-seccion-cabecera">
+      <div>
+        <h2 id="recorrido-titulo">Registros de la sesión</h2>
+        <p>Pasadas sincronizadas, laterales y secuencias de captura.</p>
+      </div>
+    </header>
+
+    <div class="bitacora-pasadas">
+      {% for p in passes %}
+        <article class="bitacora-pasada">
+          <div class="bitacora-pasada-orden">
+            <span>PASADA</span>
+            <strong>{{ p.pass_order }}</strong>
+          </div>
+
+          <div class="bitacora-pasada-ubicacion">
+            <h3>{{ p.lot.code }} · Hilera {{ p.row.number }}</h3>
+            <p>{{ p.get_lateral_code_display }}</p>
+            <span class="bitacora-estado">{{ p.get_status_display }}</span>
+          </div>
+
+          <dl class="bitacora-secuencias">
+            <div>
+              <dt>Total</dt>
+              <dd>{{ p.sequences_total }}</dd>
+            </div>
+            <div>
+              <dt>Completas</dt>
+              <dd>{{ p.sequences_complete }}</dd>
+            </div>
+            <div>
+              <dt>Incompletas</dt>
+              <dd>{{ p.sequences_incomplete }}</dd>
+            </div>
+          </dl>
+
+          <div class="bitacora-pasada-horario">
+            <span>{% icono "reloj" %} Inicio / fin</span>
+            <strong>
+              {{ p.started_at|date:"H:i"|default:"—" }}
+              –
+              {{ p.ended_at|date:"H:i"|default:"—" }}
+            </strong>
+          </div>
+        </article>
+      {% empty %}
+        <div class="bitacora-vacio">
+          {% icono "plano" %}
+          <strong>No hay pasadas sincronizadas.</strong>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- FOTOS -->
+  <section class="bitacora-seccion"
+           id="sesion-fotos"
+           aria-labelledby="fotos-titulo">
+
+    <header class="bitacora-seccion-cabecera">
+      <div>
+        <h2 id="fotos-titulo">Fotografías de la sesión</h2>
+        <p>Abre una captura para consultar su detalle.</p>
+      </div>
+
+      {% if captures|length >= 500 %}
+        <span class="bitacora-etiqueta">Primeras 500 fotos</span>
+      {% endif %}
+    </header>
+
+    <div class="bitacora-calidad">
+      <span class="bitacora-calidad-titulo">Calidad de las fotos</span>
+      <div>
+        {% for k, v in quality.items %}
+          {% badge k v %}
+        {% empty %}
+          <span class="bitacora-texto-suave">Sin fotos</span>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if captures %}
+      <div class="bitacora-galeria">
+        {% for c in captures %}
+          <a class="bitacora-foto"
+             href="{% url 'web:captura' c.pk %}"
+             title="{{ c.captured_at|date:'H:i:s' }} · {{ c.get_camera_role_display }} · {{ c.get_quality_status_display }}">
+
+            <div class="bitacora-foto-imagen">
+              <img class="foto-carga"
+                   src="{{ c.thumb_url }}"
+                   alt="Captura de {{ c.get_camera_role_display }}{% if c.monitoring_pass %}, hilera {{ c.monitoring_pass.row.number }}{% endif %}: {{ c.get_quality_status_display }}"
+                   loading="lazy">
+
+              {% if c.n_cases %}
+                <span class="bitacora-foto-caso">Con caso</span>
+              {% endif %}
+            </div>
+
+            <div class="bitacora-foto-datos">
+              <div class="bitacora-foto-fila">
+                <strong>
+                  {% if c.monitoring_pass %}
+                    Hilera {{ c.monitoring_pass.row.number }}
+                  {% else %}
+                    Sin pasada
+                  {% endif %}
+                </strong>
+                <time datetime="{{ c.captured_at|date:'c' }}">
+                  {{ c.captured_at|date:"H:i" }}
+                </time>
+              </div>
+
+              <span>{{ c.get_camera_role_display }}</span>
+              <small>{{ c.get_lateral_code_display }}</small>
+
+              <span class="bitacora-foto-calidad{% if c.quality_status != 'UTILIZABLE' %} bitacora-foto-calidad-observada{% endif %}">
+                {{ c.get_quality_status_display }}
+              </span>
+            </div>
+
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="bitacora-vacio">
+        {% icono "camara" %}
+        <strong>Esta sesión aún no tiene fotos confirmadas.</strong>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- CÁMARAS -->
+  <section class="bitacora-seccion"
+           id="sesion-equipos"
+           aria-labelledby="equipos-titulo">
+
+    <header class="bitacora-seccion-cabecera">
+      <div>
+        <h2 id="equipos-titulo">Cámaras vinculadas</h2>
+        <p>Equipos y usuarios registrados durante la sesión.</p>
+      </div>
+    </header>
+
+    <div class="bitacora-camaras">
+      {% for c in cameras %}
+        <article class="bitacora-camara">
+          <header>
+            <span class="bitacora-dato-icono">{% icono "celulares" %}</span>
+            <div>
+              <h3>{{ c.get_role_display }}</h3>
+              <p>{{ c.user.full_name|default:"Sin usuario registrado" }}</p>
+            </div>
+          </header>
+
+          <dl>
+            <div>
+              <dt>Celular</dt>
+              <dd>{{ c.model|default:"Modelo no informado" }}</dd>
+            </div>
+            <div>
+              <dt>Plataforma</dt>
+              <dd>{{ c.get_platform_display }} {{ c.os_version }}</dd>
+            </div>
+            <div>
+              <dt>Vinculada</dt>
+              <dd>{{ c.paired_at|date:"d/m/Y H:i"|default:"—" }}</dd>
+            </div>
+            <div>
+              <dt>Liberada</dt>
+              <dd>{{ c.released|yesno:"Sí,No" }}</dd>
+            </div>
+          </dl>
+        </article>
+      {% empty %}
+        <div class="bitacora-vacio">
+          {% icono "celulares" %}
+          <strong>Sin cámaras registradas.</strong>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- INCIDENCIAS -->
+  <section class="bitacora-seccion"
+           id="sesion-incidencias"
+           aria-labelledby="incidencias-titulo">
+
+    <header class="bitacora-seccion-cabecera">
+      <div>
+        <h2 id="incidencias-titulo">Incidencias de la sesión</h2>
+        <p>Eventos registrados durante la captura.</p>
+      </div>
+    </header>
+
+    <div class="bitacora-incidencias">
+      {% for i in incidents %}
+        <article class="bitacora-incidencia">
+          <time datetime="{{ i.occurred_at|date:'c' }}">
+            {{ i.occurred_at|date:"H:i:s" }}
+          </time>
+
+          <div class="bitacora-incidencia-contenido">
+            <header>
+              <h3>{{ i.get_type_display }}</h3>
+              <span class="bitacora-nivel{% if i.severity == 'ERROR' %} bitacora-nivel-error{% endif %}">
+                {{ i.get_severity_display }}
+              </span>
+            </header>
+
+            <p>{{ i.detail|default:"Sin detalle registrado." }}</p>
+            <small>Origen: {{ i.get_created_by_display }}</small>
+          </div>
+        </article>
+      {% empty %}
+        <div class="bitacora-sin-incidencias">
+          {% icono "check" %}
+          <div>
+            <strong>Sin incidencias registradas</strong>
+            <p>No hay eventos de incidencia registrados para esta sesión.</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- DATOS TÉCNICOS -->
+  <details class="bitacora-tecnica">
+    <summary>{% icono "chip" %} Información técnica de la sesión</summary>
+
+    <dl>
+      <div>
+        <dt>Versión de la app</dt>
+        <dd>{{ s.app_version|default:"—" }}</dd>
+      </div>
+      <div>
+        <dt>Configuración</dt>
+        <dd>{{ s.config_version|default:"—" }}</dd>
+      </div>
+      <div>
+        <dt>Perfil de calidad</dt>
+        <dd>{{ s.quality_profile_version|default:"—" }}</dd>
+      </div>
+      {% if s.interval_ms %}
+        <div>
+          <dt>Intervalo de captura</dt>
+          <dd>{{ s.interval_ms }} ms</dd>
+        </div>
+      {% endif %}
+    </dl>
+  </details>
+
+  {% if puede.limpieza_ejecutar %}
+    <footer class="bitacora-administracion">
+      <span>{% icono "gestion" %} Administración de la sesión</span>
+      <a href="{% url 'web:sesion_eliminar' s.pk %}">
+        {% icono "basura" %} Eliminar sesión
+      </a>
+    </footer>
+  {% endif %}
+
+</div>
+{% endblock %}

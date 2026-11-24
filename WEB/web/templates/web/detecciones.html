@@ -1,0 +1,50 @@
+{% extends "web/base.html" %}
+{% load static web_tags %}
+
+{% block titulo %}Detecciones{% endblock %}
+{% block head %}
+  <link rel="stylesheet" href="{% static 'web/detecciones_estilos.css' %}">
+{% endblock %}
+
+{% block contenido %}
+<div class="detecciones">
+    <h1>Detecciones de arándanos</h1>
+    <p>Consulta las capturas por módulo y caseta y los indicios sugeridos por la IA.</p>
+  
+
+  <dl class="detecciones-indicadores" aria-label="Indicadores pendientes de conexión">
+    <div class="detecciones-tarjeta"><dt>Capturas</dt><dd>—</dd></div>
+    <div class="detecciones-tarjeta"><dt>Frutos analizados</dt><dd>—</dd></div>
+    <div class="detecciones-tarjeta"><dt>Calidad</dt><dd>—</dd></div>
+    <div class="detecciones-tarjeta"><dt>Condición</dt><dd>—</dd></div>
+  </dl>
+
+  <section class="detecciones-tarjeta" aria-labelledby="detecciones-filtros">
+    <h2 id="detecciones-filtros">Filtros de búsqueda</h2>
+    <p>Los filtros se habilitarán al conectar los datos de las capturas.</p>
+    <fieldset class="detecciones-campos" disabled>
+      <legend class="sr-only">Módulo y caseta</legend>
+      <label>Módulo <select><option>Todos los módulos</option></select></label>
+      <label>Caseta <select><option>Todas las casetas</option></select></label>
+    </fieldset>
+  </section>
+
+  <div class="detecciones-resultados">
+    <section class="detecciones-tarjeta" aria-labelledby="detecciones-fotos">
+      <h2 id="detecciones-fotos">Fotografías de las capturas</h2>
+      <div class="detecciones-vacio">
+        {% icono "cajas" %}
+        <p>Las fotografías aparecerán aquí cuando se conecten las capturas.</p>
+      </div>
+    </section>
+    <section class="detecciones-tarjeta" aria-labelledby="detecciones-clasificacion">
+      <h2 id="detecciones-clasificacion">Clasificación de arándanos</h2>
+      <dl class="detecciones-clases">
+        <div><dt>Calidad</dt><dd>Inmaduros, sin bloom y secos.</dd></div>
+        <div><dt>Condición</dt><dd>Rasgados y otras condiciones por confirmar.</dd></div>
+      </dl>
+      <p>Los resultados de IA están pendientes de conexión.</p>
+    </section>
+  </div>
+</div>
+{% endblock %}

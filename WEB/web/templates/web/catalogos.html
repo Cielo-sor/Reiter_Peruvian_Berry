@@ -1,0 +1,169 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Catálogos{% endblock %}
+
+{% block contenido %}
+<div class="catalogos-pagina">
+
+  <header class="catalogos-encabezado">
+    <div class="catalogos-titulo">
+      <span class="catalogos-emblema">{% icono "lote" %}</span>
+      <div>
+        <h1>Catálogos del fundo</h1>
+        <p>Organiza los lotes, hileras, segmentos y marcadores del monitoreo.</p>
+      </div>
+    </div>
+
+    {% if inactivos %}
+      <a class="catalogos-alternar"
+         href="{% url 'web:catalogos' %}">
+        {% icono "ojo" %} Ocultar inactivos
+      </a>
+    {% else %}
+      <a class="catalogos-alternar"
+         href="{% url 'web:catalogos' %}?inactivos=1">
+        {% icono "ojo" %} Mostrar inactivos
+      </a>
+    {% endif %}
+  </header>
+
+  <div class="catalogos-distribucion">
+
+    <section aria-labelledby="catalogos-lotes-titulo">
+      <header class="catalogos-seccion-cabecera">
+        <div>
+          <h2 id="catalogos-lotes-titulo">Lotes registrados</h2>
+          <p>
+            {% if inactivos %}
+              Mostrando lotes activos e inactivos.
+            {% else %}
+              Mostrando lotes activos.
+            {% endif %}
+          </p>
+        </div>
+      </header>
+
+      <div class="catalogos-lotes">
+        {% for l in lotes %}
+          <a class="catalogos-lote{% if not l.active %} catalogos-lote-inactivo{% endif %}"
+             href="{% url 'web:catalogo_lote' l.pk %}">
+
+            <div class="catalogos-lote-cabecera">
+              <span class="catalogos-lote-icono">
+                {% icono "lote" %}
+              </span>
+
+              <span class="catalogos-estado {% if l.active %}catalogos-estado-activo{% endif %}">
+                <span aria-hidden="true"></span>
+                {% if l.active %}Activo{% else %}Inactivo{% endif %}
+              </span>
+            </div>
+
+            <h3>{{ l.code }}</h3>
+            <p class="catalogos-lote-nombre">{{ l.name }}</p>
+
+            <dl class="catalogos-cifras">
+              <div>
+                <dt>Hileras</dt>
+                <dd>{{ l.n_hileras }}</dd>
+              </div>
+              <div>
+                <dt>Segmentos</dt>
+                <dd>{{ l.n_segmentos }}</dd>
+              </div>
+              <div>
+                <dt>Marcadores</dt>
+                <dd>{{ l.n_marcadores }}</dd>
+              </div>
+            </dl>
+
+            <span class="catalogos-lote-pie">
+              Administrar lote
+              {% icono "der" %}
+            </span>
+          </a>
+        {% empty %}
+          <div class="catalogos-vacio">
+            <span>{% icono "lote" %}</span>
+            <strong>No hay lotes para mostrar</strong>
+            <p>
+              Crea un lote con el formulario
+              {% if not inactivos %}
+                o activa «Mostrar inactivos» para consultar los desactivados
+              {% endif %}.
+            </p>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <aside class="catalogos-lateral" aria-label="Crear lote">
+      <form method="post"
+            class="catalogos-formulario"
+            novalidate>
+
+        {% csrf_token %}
+
+        <header class="catalogos-formulario-cabecera">
+          <span>{% icono "mas" %}</span>
+          <div>
+            <h2>Nuevo lote</h2>
+            <p>Registra una nueva zona del fundo.</p>
+          </div>
+        </header>
+
+        {% if form.non_field_errors %}
+          <ul class="errorlist" role="alert">
+            {% for e in form.non_field_errors %}
+              <li>{{ e }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        <div class="catalogos-campo">
+          <label for="{{ form.code.id_for_label }}">
+            {{ form.code.label }}
+          </label>
+          {{ form.code }}
+          <p class="catalogos-ayuda">
+            Usa el código con el que se identifica en campo.
+            El identificador interno se genera automáticamente.
+          </p>
+          {{ form.code.errors }}
+        </div>
+
+        <div class="catalogos-campo">
+          <label for="{{ form.name.id_for_label }}">
+            {{ form.name.label }}
+          </label>
+          {{ form.name }}
+          {{ form.name.errors }}
+        </div>
+
+        <button class="catalogos-crear" type="submit">
+          {% icono "guardar" %} Crear lote
+        </button>
+      </form>
+
+      <div class="catalogos-recordatorio">
+        {% icono "info" %}
+        <p>
+          Desactivar un elemento lo oculta de la app y del plano,
+          <strong>sin borrar su historial.</strong>
+        </p>
+      </div>
+    </aside>
+
+  </div>
+
+  <p class="catalogos-sincronizacion">
+    {% icono "refrescar" %}
+    <span>
+      Los cambios llegan a la app cuando el controlador toca
+      <strong>Actualizar</strong> en Catálogos.
+    </span>
+  </p>
+
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Monitoreo{% endblock %}
+
+{% block contenido %}
+<div class="modulos-casetas reiter-dashboard">
+  <header class="mc-encabezado">
+    <div>
+      <h1>Monitoreo de capturas</h1>
+      <p class="mc-subtitulo">Seguimiento de las fotografías recibidas y su frecuencia por módulo y caseta.</p>
+    </div>
+  </header>
+
+  <form class="rc-filtros" method="get" aria-label="Filtros de monitoreo">
+    <label>Desde {{ filtro.desde }} {{ filtro.desde.errors }}</label>
+    <label>Hasta {{ filtro.hasta }} {{ filtro.hasta.errors }}</label>
+    <label>Módulo {{ filtro.modulo }} {{ filtro.modulo.errors }}</label>
+    <label>Caseta {{ filtro.caseta }} {{ filtro.caseta.errors }}</label>
+    <button class="btn btn-primario" type="submit">{% icono "filtro" %} Filtrar</button>
+    <a class="btn" href="{% url 'web:monitoreo_reiter' %}">Limpiar filtros</a>
+  </form>
+
+  {% if not filtro.errors %}
+
+  <section class="mc-resumen" aria-label="Resumen de capturas por caseta">
+    <div><span class="mc-etiqueta">Capturas recibidas</span><strong>{{ resumen.total }}</strong><small>Fotografías registradas en el periodo</small></div>
+    <div><span class="mc-etiqueta">Última captura</span><strong>{{ resumen.ultima|date:"d/m/Y H:i"|default:"—" }}</strong><small>Fecha y hora del último registro</small></div>
+    <div><span class="mc-etiqueta">Intervalo promedio</span><strong>{{ resumen.intervalo|default_if_none:"—" }}</strong><small>Minutos entre capturas de la misma caseta</small></div>
+  </section>
+
+  <section class="rc-card" aria-labelledby="frecuencia-casetas">
+    <div class="rc-card-head">
+      <div>
+        <h2 id="frecuencia-casetas">{% icono "actividad" %} Frecuencia por caseta</h2>
+        <p>Resumen por módulo y caseta para el periodo consultado.</p>
+      </div>
+    </div>
+    <div class="rc-tabla-scroll" role="region" aria-labelledby="frecuencia-casetas" tabindex="0">
+      <table class="rc-tabla">
+        <thead>
+          <tr>
+            <th scope="col">Módulo</th>
+            <th scope="col">Caseta</th>
+            <th scope="col">Capturas</th>
+            <th scope="col">Última captura</th>
+            <th scope="col">Intervalo promedio</th>
+            <th scope="col">Sincronización</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for fila in filas %}
+            <tr>
+              <td>{{ fila.modulo }}</td>
+              <td>{{ fila.caseta|default:"Sin asignar" }}</td>
+              <td>{{ fila.total }}</td>
+              <td>{{ fila.ultima|date:"d/m/Y H:i" }}</td>
+              <td>{{ fila.intervalo|default_if_none:"—" }}</td>
+              <td>Confirmada</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="6" class="rc-vacio">No hay capturas para estos filtros.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="rc-card rc-actividad" aria-labelledby="ultimas-capturas">
+    <header class="rc-card-head">
+      <h2 id="ultimas-capturas">{% icono "camara" %} Últimas capturas recibidas</h2>
+    </header>
+    <div class="rc-tabla-scroll" role="region" aria-labelledby="ultimas-capturas" tabindex="0">
+      <table class="rc-tabla">
+        <thead>
+          <tr>
+            <th scope="col">Fecha y hora</th>
+            <th scope="col">Operador</th>
+            <th scope="col">Módulo</th>
+            <th scope="col">Caseta</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for captura in recientes %}
+            <tr>
+              <td><a href="{% url 'web:captura' captura.pk %}">{{ captura.captured_at|date:"d/m/Y H:i" }}</a></td>
+              <td>{{ captura.operator_user.full_name }}</td>
+              <td>{{ captura.monitoring_pass.lot.code }}</td>
+              <td>{{ captura.session.caseta.codigo|default:"Sin asignar" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="rc-vacio">No hay capturas para estos filtros.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <a class="rc-link" href="{% url 'web:sesiones' %}">Ver sesiones de muestreo →</a>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+# Entorno virtual de Python
+.venv/
+venv/
+
+# Base de datos SQLite y respaldos
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3-wal
+*.sqlite3-shm
+
+# Variables de entorno y credenciales
+.env
+.env.*
+!.env.example
+
+# Archivos temporales de Python
+__pycache__/
+*.py[cod]
+
+# Configuración local
+.vscode/
+
+# Respaldo del historial anterior
+.git_riachuelo_backup/
+
+# Archivos de claves privadas
+*.pem
+*.key
+
+# Documentación heredada
+docs/Plataforma_Riachuelo_como_funciona*.pdf
+
+# Fotografías generadas para demostraciones
+media/demo_cache/

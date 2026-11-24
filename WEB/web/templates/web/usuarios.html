@@ -1,0 +1,524 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Usuarios{% endblock %}
+
+{% block contenido %}
+<div class="cuentas-panel">
+
+  <header class="cuentas-portada">
+    <div>
+      <span class="cuentas-eyebrow">ADMINISTRACIÓN DE ACCESOS</span>
+      <h1>Personas y permisos</h1>
+      <p>Gestiona quién accede a la plataforma y qué puede hacer.</p>
+    </div>
+
+    <a class="cuentas-btn btn-primario" href="#nueva-cuenta">
+      {% icono "user-plus" %} Crear cuenta
+    </a>
+  </header>
+
+  <nav class="cuentas-navegacion" aria-label="Secciones de usuarios">
+    <a href="#cuentas-solicitudes">
+      {% icono "user-check" %}
+      Solicitudes
+      <span>{{ pendientes|length }}</span>
+    </a>
+
+    <a href="#cuentas-directorio">
+      {% icono "usuarios" %} Directorio
+    </a>
+
+    <a href="#nueva-cuenta">
+      {% icono "user-plus" %} Nueva cuenta
+    </a>
+
+    {% if solicitudes %}
+      <a href="#cuentas-restablecimientos">
+        {% icono "llave" %} Restablecimientos
+      </a>
+    {% endif %}
+  </nav>
+
+  <!-- SOLICITUDES -->
+  <section class="cuentas-seccion"
+           id="cuentas-solicitudes"
+           aria-labelledby="solicitudes-titulo">
+
+    <header class="cuentas-seccion-cabecera">
+      <div>
+        <h2 id="solicitudes-titulo">Solicitudes de acceso</h2>
+        <p>Cuentas registradas desde la app que esperan aprobación.</p>
+      </div>
+      <span class="cuentas-contador">
+        {{ pendientes|length }} pendientes
+      </span>
+    </header>
+
+    {% if pendientes %}
+      <div class="cuentas-aviso">
+        {% icono "info" %}
+        <span>
+          Para un operador selecciona únicamente «Operador de campo».
+          Este rol no se combina con los roles de la web.
+        </span>
+      </div>
+    {% endif %}
+
+    <div class="cuentas-solicitudes">
+      {% for u in pendientes %}
+        <article class="cuentas-solicitud">
+
+          <div class="cuentas-solicitud-cabecera">
+            <div>
+              <h3>{{ u.full_name }}</h3>
+              <p>{{ u.email }}</p>
+            </div>
+            <span class="cuentas-etiqueta-pendiente">Por aprobar</span>
+          </div>
+
+          <dl class="cuentas-datos-solicitud">
+            <div>
+              <dt>Código</dt>
+              <dd>{{ u.employee_code|default:"—" }}</dd>
+            </div>
+            <div>
+              <dt>Celular</dt>
+              <dd>{{ u.phone|default:"Sin registrar" }}</dd>
+            </div>
+            <div>
+              <dt>Solicitud</dt>
+              <dd>{{ u.created_at|date:"d/m/Y H:i" }}</dd>
+            </div>
+          </dl>
+
+          <form method="post"
+                action="{% url 'web:usuario_accion' u.pk 'aprobar' %}"
+                id="aprobar-{{ u.pk }}">
+            {% csrf_token %}
+
+            <fieldset class="cuentas-roles">
+              <legend>Roles que se asignarán</legend>
+
+              {% for c in approve_form.roles %}
+                <label for="aprobar-{{ u.pk }}-rol-{{ forloop.counter }}">
+                  <input type="checkbox"
+                         name="{{ approve_form.roles.html_name }}"
+                         value="{{ c.data.value }}"
+                         id="aprobar-{{ u.pk }}-rol-{{ forloop.counter }}"
+                         {% if c.data.selected %}checked{% endif %}>
+                  {{ c.choice_label }}
+                </label>
+              {% endfor %}
+            </fieldset>
+          </form>
+
+          <div class="cuentas-solicitud-acciones">
+            <form method="post"
+                  action="{% url 'web:usuario_accion' u.pk 'rechazar' %}"
+                  data-confirmar="¿Rechazar la solicitud de {{ u.full_name }}? La cuenta no podrá entrar a la app ni a la web.">
+              {% csrf_token %}
+              <button class="cuentas-btn btn-secundario" type="submit">
+                {% icono "x" %} Rechazar
+              </button>
+            </form>
+
+            <button class="cuentas-btn btn-primario"
+                    type="submit"
+                    form="aprobar-{{ u.pk }}">
+              {% icono "user-check" %} Aprobar cuenta
+            </button>
+          </div>
+
+        </article>
+      {% empty %}
+        <div class="cuentas-sin-pendientes">
+          <span class="cuentas-icono-suave">{% icono "user-check" %}</span>
+          <div>
+            <strong>No hay solicitudes pendientes</strong>
+            <p>Las nuevas solicitudes de la app aparecerán aquí.</p>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- DIRECTORIO -->
+  <section class="cuentas-seccion cuentas-directorio"
+           id="cuentas-directorio"
+           aria-labelledby="directorio-titulo">
+
+    <header class="cuentas-seccion-cabecera">
+      <div>
+        <h2 id="directorio-titulo">Directorio de usuarios</h2>
+        <p>Consulta los roles y administra el acceso de cada persona.</p>
+      </div>
+    </header>
+
+    <div class="cuentas-tabla-scroll"
+         role="region"
+         aria-label="Directorio de usuarios"
+         tabindex="0">
+
+      <table class="cuentas-tabla">
+        <thead>
+          <tr>
+            <th scope="col">Persona</th>
+            <th scope="col">Roles asignados</th>
+            <th scope="col">Estado de acceso</th>
+            <th scope="col">Administrar</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for u in todos %}
+            <tr>
+              <td>
+                <div class="cuentas-persona">
+                  <strong>{{ u.full_name }}</strong>
+                  <span>{{ u.email }}</span>
+
+                  {% if u.pk == user.pk %}
+                    <small class="cuentas-tu">Tu cuenta</small>
+                  {% endif %}
+                </div>
+              </td>
+
+              <td>
+                <div class="cuentas-roles-lista">
+                  {% for r in u.user_roles.all %}
+                    <span>{{ r.get_role_display }}</span>
+                  {% empty %}
+                    <small class="cuentas-texto-suave">Sin roles asignados</small>
+                  {% endfor %}
+                </div>
+              </td>
+
+              <td>
+                <span class="cuentas-estado" data-estado="{{ u.status }}">
+                  <i aria-hidden="true"></i>
+                  {{ u.get_status_display }}
+                </span>
+
+                {% if u.must_change_password %}
+                  <small class="cuentas-temporal">
+                    {% icono "llave" %} Contraseña temporal
+                  </small>
+                {% endif %}
+              </td>
+
+              <td class="cuentas-celda-acciones">
+                <div class="cuentas-acciones-usuario">
+
+                  <a class="cuentas-btn cuentas-btn-suave cuentas-btn-pequeno"
+                     href="{% url 'web:usuario_editar' u.pk %}">
+                    {% icono "editar" %} Editar
+                  </a>
+
+                  {% if u.status == 'ACTIVO' or u.status == 'BLOQUEADO' %}
+                    <details class="cuentas-opciones">
+                      <summary class="cuentas-btn cuentas-btn-suave cuentas-btn-pequeno">
+                        {% icono "gestion" %} Acciones
+                      </summary>
+
+                      <div class="cuentas-opciones-contenido">
+                        {% if u.pk != user.pk %}
+
+                          {% if u.status == 'ACTIVO' %}
+                            <form method="post"
+                                  action="{% url 'web:usuario_accion' u.pk 'bloquear' %}"
+                                  data-confirmar="¿Bloquear a {{ u.full_name }}? Se cerrará su sesión en la web y en la app.">
+                              {% csrf_token %}
+                              <button class="cuentas-accion"
+                                      type="submit">
+                                {% icono "bloquear" %} Bloquear acceso
+                              </button>
+                            </form>
+
+                            <form method="post"
+                                  action="{% url 'web:usuario_accion' u.pk 'contrasena-temporal' %}"
+                                  data-confirmar="¿Dar una contraseña temporal a {{ u.full_name }}? Se mostrará una sola vez y se cerrará su sesión en la app.">
+                              {% csrf_token %}
+                              <button class="cuentas-accion"
+                                      type="submit">
+                                {% icono "llave" %} Generar contraseña temporal
+                              </button>
+                            </form>
+                          {% endif %}
+
+                          {% if u.status == 'BLOQUEADO' %}
+                            <form method="post"
+                                  action="{% url 'web:usuario_accion' u.pk 'desbloquear' %}">
+                              {% csrf_token %}
+                              <button class="cuentas-accion"
+                                      type="submit">
+                                {% icono "desbloquear" %} Desbloquear acceso
+                              </button>
+                            </form>
+                          {% endif %}
+
+                        {% endif %}
+
+                        <details class="cuentas-editar-roles">
+                          <summary>
+                            {% icono "escudo" %} Modificar roles
+                          </summary>
+
+                          <form method="post"
+                                action="{% url 'web:usuario_accion' u.pk 'roles' %}">
+                            {% csrf_token %}
+
+                            <p class="cuentas-texto-suave">
+                              «Operador de campo» se asigna solo y corresponde a la app.
+                            </p>
+
+                            {% for value, label in roles_choices %}
+                              <label>
+                                <input type="checkbox"
+                                       name="roles"
+                                       value="{{ value }}"
+                                       {% if value in u.roles %}checked{% endif %}>
+                                {{ label }}
+                              </label>
+                            {% endfor %}
+
+                            <button class="cuentas-btn cuentas-btn-principal cuentas-btn-pequeno"
+                                    type="submit">
+                              {% icono "guardar" %} Guardar roles
+                            </button>
+                          </form>
+                        </details>
+                      </div>
+                    </details>
+                  {% endif %}
+                </div>
+              </td>
+            </tr>
+          {% empty %}
+            <tr>
+              <td colspan="4">
+                <div class="cuentas-vacio">
+                  {% icono "usuarios" %}
+                  <strong>No hay cuentas para mostrar.</strong>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- RESTABLECIMIENTOS -->
+  {% if solicitudes %}
+    <section class="cuentas-seccion"
+             id="cuentas-restablecimientos"
+             aria-labelledby="restablecimientos-titulo">
+
+      <header class="cuentas-seccion-cabecera">
+        <div>
+          <h2 id="restablecimientos-titulo">Solicitudes de contraseña</h2>
+          <p>Revisa la cuenta en el directorio para generar una contraseña temporal.</p>
+        </div>
+      </header>
+
+      <ul class="cuentas-restablecimientos">
+        {% for s in solicitudes %}
+          <li>
+            <span class="cuentas-icono-suave">{% icono "llave" %}</span>
+            <div>
+              <strong>{{ s.email }}</strong>
+              <small>
+                {{ s.requested_at|date:"d/m/Y H:i" }}
+                {% if not s.user %} · Correo sin cuenta{% endif %}
+              </small>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <!-- NUEVA CUENTA -->
+  <section class="cuentas-seccion cuentas-creacion"
+           aria-labelledby="nueva-cuenta-titulo">
+
+    <div class="cuentas-creacion-intro">
+      <span class="cuentas-icono-suave">{% icono "user-plus" %}</span>
+      <span class="cuentas-eyebrow">NUEVO ACCESO</span>
+      <h2 id="nueva-cuenta-titulo">Agrega una persona al equipo</h2>
+      <p>
+        Elige el tipo de cuenta y asigna los permisos que necesita
+        para realizar su trabajo.
+      </p>
+
+      <div class="cuentas-creacion-nota">
+        {% icono "llave" %}
+        <span>
+          Se creará activa, con una contraseña temporal que se muestra
+          una sola vez y debe cambiarse al primer ingreso.
+        </span>
+      </div>
+    </div>
+
+    <form method="post"
+          action="{% url 'web:usuario_nuevo' %}"
+          class="formulario cuentas-formulario"
+          id="nueva-cuenta"
+          data-tipo-cuenta
+          novalidate>
+
+      {% csrf_token %}
+
+      {% if form_nueva.non_field_errors %}
+        <div role="alert">
+          {{ form_nueva.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <fieldset class="tipo-cuenta cuentas-tipos">
+        <legend>1. Selecciona el tipo de cuenta</legend>
+
+        {% for opcion in form_nueva.tipo %}
+          <label for="{{ opcion.id_for_label }}">
+            {{ opcion.tag }}
+            <span>
+              {% if opcion.data.value == "APP" %}
+                <strong>{% icono "telefono" %} App móvil</strong>
+                <small>Para operadores de campo.</small>
+              {% else %}
+                <strong>{% icono "panel" %} Plataforma web</strong>
+                <small>Para especialistas, supervisores y administradores.</small>
+              {% endif %}
+            </span>
+          </label>
+        {% endfor %}
+      </fieldset>
+      {{ form_nueva.tipo.errors }}
+
+      <h3 class="cuentas-form-subtitulo">2. Completa los datos</h3>
+
+      <div class="cuentas-campos">
+        <div class="campo">
+          <label for="{{ form_nueva.full_name.id_for_label }}">
+            {{ form_nueva.full_name.label }}
+          </label>
+          {{ form_nueva.full_name }}
+          {{ form_nueva.full_name.errors }}
+        </div>
+
+        <div class="campo">
+          <label for="{{ form_nueva.email.id_for_label }}">
+            {{ form_nueva.email.label }}
+          </label>
+          {{ form_nueva.email }}
+          {{ form_nueva.email.errors }}
+        </div>
+
+        <div class="campo">
+          <label for="{{ form_nueva.phone.id_for_label }}">
+            {{ form_nueva.phone.label }}
+            <small>(opcional)</small>
+          </label>
+          {{ form_nueva.phone }}
+          {{ form_nueva.phone.errors }}
+        </div>
+
+        <div class="campo">
+          <label for="{{ form_nueva.employee_code.id_for_label }}">
+            {{ form_nueva.employee_code.label }}
+            <small>(opcional)</small>
+          </label>
+          {{ form_nueva.employee_code }}
+          {{ form_nueva.employee_code.errors }}
+        </div>
+      </div>
+
+      <div class="campo" data-solo-web>
+        <h3 class="cuentas-form-subtitulo">3. Asigna los roles</h3>
+
+        <div class="chips-roles cuentas-roles">
+          {% for c in form_nueva.roles %}
+            <label for="{{ c.id_for_label }}">
+              {{ c.tag }} {{ c.choice_label }}
+            </label>
+          {% endfor %}
+        </div>
+
+        <p class="cuentas-texto-suave">
+          Puedes seleccionar varios roles: sus permisos se suman.
+          Solo el especialista decide casos.
+        </p>
+        {{ form_nueva.roles.errors }}
+      </div>
+
+      <div class="cuentas-form-pie">
+        <button class="cuentas-btn btn-primario" type="submit">
+          {% icono "user-plus" %}
+          Crear cuenta y generar contraseña temporal
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- REGLAS -->
+  <details class="cuentas-reglas">
+    <summary>{% icono "escudo" %} Consultar las reglas de acceso</summary>
+
+    <div class="cuentas-reglas-grid">
+      <div>
+        <h3>Operador de campo</h3>
+        <p>
+          Accede solo a la app móvil. Puede registrarse desde la app
+          y esperar aprobación, o ser creado aquí. Su rol no se combina
+          con roles de la web.
+        </p>
+      </div>
+
+      <div>
+        <h3>Especialista y supervisor</h3>
+        <p>
+          Acceden a la web. Sus cuentas las crea el administrador;
+          no existe registro público en la plataforma.
+        </p>
+      </div>
+
+      <div>
+        <h3>Administrador</h3>
+        <p>
+          Accede a la web y a la app. Gestiona cuentas, celulares,
+          destinatarios y auditoría. El rol de administrador por sí
+          solo no permite decidir casos.
+        </p>
+      </div>
+
+      <div>
+        <h3>Identidad y trazabilidad</h3>
+        <p>
+          Una cuenta por persona y por tipo, con correo propio.
+          No se comparten cuentas: la auditoría identifica quién
+          captura fotos y quién revisa los casos.
+        </p>
+      </div>
+
+      <div>
+        <h3>Contraseñas temporales</h3>
+        <p>
+          Se muestran una sola vez. La persona debe cambiarlas
+          al iniciar sesión.
+        </p>
+      </div>
+
+      <div>
+        <h3>Edición de cuentas</h3>
+        <p>
+          Solo el administrador modifica los datos de ingreso y
+          las contraseñas de otras cuentas. Los cambios quedan
+          registrados en la auditoría.
+        </p>
+      </div>
+    </div>
+  </details>
+
+</div>
+{% endblock %}

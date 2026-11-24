@@ -1,0 +1,114 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Sesiones de muestreo{% endblock %}
+
+
+
+{% block contenido %}
+<div class="jornadas-panel modulos-casetas reiter-dashboard">
+
+  <header class="mc-encabezado">
+    <div>
+      <h1>Sesiones de muestreo</h1>
+      <p class="mc-subtitulo">Consulta quién realizó cada muestreo, cuándo se registró y cuántas capturas generó.</p>
+    </div>
+
+    <div class="jornadas-total">
+      <span class="jornadas-total-icono">{% icono "sesiones" %}</span>
+      <div>
+        <strong>{{ page.paginator.count }}</strong>
+        <span>
+          {% if page.paginator.count == 1 %}
+            sesión registrada
+          {% else %}
+            sesiones registradas
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <section class="jornadas-historial"
+           aria-labelledby="jornadas-titulo">
+
+    <header class="jornadas-cabecera">
+      <div>
+        <h2 id="jornadas-titulo">Historial de sesiones</h2>
+        <p>Abre una sesión para consultar las fotografías, los resultados asociados y las incidencias.</p>
+      </div>
+    </header>
+
+    <div class="rc-tabla-scroll" role="region" aria-labelledby="jornadas-titulo" tabindex="0">
+      <table class="rc-tabla">
+        <thead>
+          <tr>
+            <th scope="col">Sesión</th>
+            <th scope="col">Módulo</th>
+            <th scope="col">Caseta</th>
+            <th scope="col">Operador</th>
+            <th scope="col">Estado</th>
+            <th scope="col">Inicio</th>
+            <th scope="col">Fin</th>
+            <th scope="col">Capturas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in page.object_list %}
+            <tr>
+              <th scope="row">
+                <a href="{% url 'web:sesion' s.pk %}">{{ s.pk|stringformat:"s"|slice:":8" }}</a>
+              </th>
+              <td>Pendiente</td>
+              <td>Pendiente</td>
+              <td>{{ s.operator.full_name|default:"Sin operador registrado" }}</td>
+              <td>{{ s.get_status_display }}</td>
+              <td>{{ s.started_at|date:"d/m/Y H:i"|default:"Sin registrar" }}</td>
+              <td>{{ s.ended_at|date:"d/m/Y H:i"|default:"Sin cierre" }}</td>
+              <td>{{ s.n_capturas }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="8" class="rc-vacio">Las sesiones aparecerán cuando se sincronicen desde la app.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="jornadas-paginacion">
+      <span class="jornadas-resumen">
+        {% if page.paginator.count %}
+          Mostrando {{ page.start_index }}–{{ page.end_index }}
+          de {{ page.paginator.count }}
+          {% if page.paginator.count == 1 %}sesión{% else %}sesiones{% endif %}
+        {% else %}
+          Sin sesiones registradas
+        {% endif %}
+      </span>
+
+      <nav class="jornadas-paginas" aria-label="Páginas de sesiones">
+        {% if page.has_previous %}
+          <a href="{% querystring pagina=page.previous_page_number %}"
+             aria-label="Página anterior">
+            {% icono "izq" %}
+            <span>Anterior</span>
+          </a>
+        {% endif %}
+
+        <span class="jornadas-pagina-actual">
+          {{ page.number }} / {{ page.paginator.num_pages }}
+        </span>
+
+        {% if page.has_next %}
+          <a href="{% querystring pagina=page.next_page_number %}"
+             aria-label="Página siguiente">
+            <span>Siguiente</span>
+            {% icono "der" %}
+          </a>
+        {% endif %}
+      </nav>
+    </footer>
+
+  </section>
+
+</div>
+{% endblock %}

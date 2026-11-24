@@ -1,0 +1,101 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Panel de monitoreo{% endblock %}
+{% block body_class %}pagina-dashboard{% endblock %}
+
+{% block contenido %}
+<div class="reiter-dashboard">
+  <header class="rc-hero">
+    <div>
+      <h1>{% saludo %}, {{ user|primer_nombre }}</h1>
+      <p>Consulta las capturas recibidas desde las casetas y el estado general del procesamiento.</p>
+    </div>
+  </header>
+
+  <form class="rc-filtros" method="get">
+    <label>Desde {{ filtro.desde }}</label>
+    <label>Hasta {{ filtro.hasta }}</label>
+    <button class="btn btn-primario" type="submit">{% icono "filtro" %} Aplicar filtros</button>
+  </form>
+  {{ filtro.desde.errors }}
+  {{ filtro.hasta.errors }}
+  {{ filtro.non_field_errors }}
+
+  <div class="rc-kpis">
+    <section class="rc-kpi">
+      <div class="rc-kpi-top"><span>Capturas recibidas</span><span class="rc-icono">{% icono "camara" %}</span></div>
+      <strong>{{ k.capturas|default_if_none:"0" }}</strong>
+      <small>Fotografías registradas en el periodo</small>
+    </section>
+    <section class="rc-kpi">
+      <div class="rc-kpi-top"><span>Sesiones registradas</span><span class="rc-icono">{% icono "sesiones" %}</span></div>
+      <strong>{{ k.sesiones|default_if_none:"0" }}</strong>
+      <small>Sesiones de captura del periodo</small>
+    </section>
+    <section class="rc-kpi">
+      <div class="rc-kpi-top"><span>Pendientes de análisis</span><span class="rc-icono">{% icono "ia" %}</span></div>
+      <strong>{{ k.cola|default_if_none:"0" }}</strong>
+      <small>Fotos en cola en el estado actual</small>
+    </section>
+    <section class="rc-kpi">
+      <div class="rc-kpi-top"><span>Errores de análisis</span><span class="rc-icono">{% icono "alerta" %}</span></div>
+      <strong>{{ k.ia.ERROR_DE_ANALISIS|default_if_none:"0" }}</strong>
+      <small>Errores registrados en el periodo</small>
+    </section>
+  </div>
+
+  <div class="rc-layout">
+    <section class="rc-card rc-clasificacion">
+      <div class="rc-card-head">
+        <div>
+          <h2>{% icono "ia" %} Clasificación de arándanos</h2>
+          <p>Calidad y condición según los resultados de la aplicación móvil.</p>
+        </div>
+        <span class="rc-pendiente">Pendiente de integración</span>
+      </div>
+      <div class="rc-categorias">
+        <div class="rc-grupo"><span class="rc-grupo-titulo">Calidad</span><div class="rc-chips"><span>Bloom</span><span>Inmaduros</span><span>Golpeados</span></div></div>
+        <div class="rc-grupo"><span class="rc-grupo-titulo">Condición</span><div class="rc-chips"><span>Rasgados</span><span>Podridos</span></div></div>
+      </div>
+      <p class="rc-nota">Las categorías son parte del nuevo flujo de muestreo. Los conteos aparecerán cuando la app envíe las clases y la vista de Django los agregue; no se muestran cifras simuladas.</p>
+    </section>
+
+    <section class="rc-card">
+      <div class="rc-card-head"><div><h2>{% icono "camara" %} Capturas y calidad de imagen</h2><p>Indicadores existentes del backend.</p></div></div>
+      <div class="rc-resumen-linea"><span>Fotos recibidas</span><strong>{{ k.capturas|default_if_none:"0" }}</strong></div>
+      <div class="rc-resumen-linea"><span>Fotos rechazadas por calidad de imagen</span><strong>{{ k.rechazadas|default_if_none:"0" }}</strong></div>
+      <p class="rc-nota">“Rechazadas” corresponde a la validación de fotografías; no equivale a arándanos descartados por condición o calidad comercial.</p>
+      {% if puede.sesiones_ver %}<a class="rc-link" href="{% url 'web:sesiones' %}">Ver registros de sesiones →</a>{% endif %}
+    </section>
+
+    <section class="rc-card rc-lotes">
+      <div class="rc-card-head"><div><h2>{% icono "lote" %} Lotes registrados</h2><p>Lotes que entrega el resumen actual de Django.</p></div></div>
+      <div class="rc-tabla-scroll"><table class="rc-tabla"><thead><tr><th>Código</th><th>Nombre</th></tr></thead><tbody>
+      {% for c in k.cobertura %}
+        <tr><td><strong>{{ c.lot.code }}</strong></td><td>{{ c.lot.name }}</td></tr>
+      {% empty %}
+        <tr><td colspan="2" class="rc-vacio">No hay lotes disponibles en este resumen.</td></tr>
+      {% endfor %}
+      </tbody></table></div>
+      <p class="rc-nota">La información actual proviene del módulo anterior de campo. Para listar todos los lotes y casetas del nuevo proceso habrá que ajustar la vista de Django.</p>
+    </section>
+
+    <section class="rc-card">
+      <div class="rc-card-head"><div><h2>{% icono "actividad" %} Frecuencia de capturas</h2><p>Seguimiento de intervalos entre fotografías por caseta o sesión.</p></div>{% if puede.sesiones_ver %}<a class="rc-link" href="{% url 'web:monitoreo_reiter' %}">Ver monitoreo →</a>{% endif %}</div>
+      <div class="rc-vacio rc-vacio-grande">Aún no se calcula la frecuencia de captura. Aquí mostraremos el último registro, el intervalo promedio y el número de capturas por caseta cuando estén disponibles los datos.</div>
+    </section>
+  </div>
+
+  <section class="rc-card rc-actividad">
+    <div class="rc-card-head"><div><h2>{% icono "actividad" %} Actividad reciente</h2><p>Eventos del sistema que ya proporciona el backend.</p></div></div>
+    <ul class="linea-tiempo" id="actividad-panel">
+      {% for e in eventos %}
+        {% include "web/partials/evento.html" %}
+      {% empty %}
+        <li data-vacio>Todavía no hay actividad registrada.</li>
+      {% endfor %}
+    </ul>
+  </section>
+</div>
+{% endblock %}

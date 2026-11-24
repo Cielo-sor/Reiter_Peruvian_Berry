@@ -1,0 +1,50 @@
+# web/urls.py — Rutas de la web (sección 6.3). Prefijo raíz; la API vive en /api/v1/ y Django Admin en /gestion/.
+from django.urls import path
+
+from web import views
+
+app_name = "web"
+urlpatterns = [
+    path("ingresar/", views.ingresar, name="login"),
+    path("salir/", views.salir, name="logout"),
+    path("cuenta/contrasena/", views.cambiar_contrasena, name="cambiar_contrasena"),
+    path("", views.dashboard, name="dashboard"),
+    path("actividad/", views.actividad, name="actividad"),  # v1.0+: avisos en vivo (sondeo P-2)
+    path("casos/", views.bandeja, name="bandeja"),
+    path("casos/descartadas-ia/", views.descartadas_ia, name="descartadas_ia"),  # v1.3.2
+    path("casos/descartadas-ia/resumen/", views.descartadas_resumen, name="descartadas_resumen"),  # v1.3.2
+    path("casos/<uuid:pk>/", views.caso, name="caso"),
+    path("casos/<uuid:pk>/decidir/", views.caso_decidir, name="caso_decidir"),
+    path("casos/<uuid:pk>/corregir/", views.caso_corregir, name="caso_corregir"),
+    path("capturas/<uuid:pk>/", views.captura, name="captura"),
+    path("capturas/<uuid:pk>/abrir-caso/", views.captura_abrir_caso, name="captura_abrir_caso"),
+    path("mapa/", views.mapa, name="mapa"),
+    path("mapa/datos/", views.mapa_datos, name="mapa_datos"),
+    path("mapa/capas/", views.mapa_capas, name="mapa_capas"),  # v1.3 (ADR-W-007)
+    path("mapa/editar/", views.mapa_editar, name="mapa_editar"),  # v1.3 (ADR-W-007)
+    path("plano/", views.plano, name="plano"),
+    path("detecciones/", views.detecciones_reiter, name="detecciones_reiter"),
+    path("monitoreo/", views.monitoreo_reiter, name="monitoreo_reiter"),
+    path("sesiones/", views.sesiones, name="sesiones"),
+    path("sesiones/<uuid:pk>/", views.sesion, name="sesion"),
+    path("sesiones/<uuid:pk>/eliminar/", views.sesion_eliminar, name="sesion_eliminar"),  # v1.3.1 (ADR-W-008)
+    path("reportes/", views.reportes, name="reportes"),
+    path("reportes/casos.csv", views.exportar_casos, name="exportar_casos"),
+    path("notificaciones/", views.notificaciones, name="notificaciones"),
+    path("administracion/destinatarios/", views.destinatarios, name="destinatarios"),
+    path("administracion/destinatarios/<int:pk>/", views.destinatarios, name="destinatario_editar"),
+    path("administracion/usuarios/", views.usuarios, name="usuarios"),
+    path("administracion/usuarios/nueva/", views.usuario_nuevo, name="usuario_nuevo"),  # v1.1 (ADR-W-005)
+    path("administracion/usuarios/<uuid:pk>/editar/", views.usuario_editar, name="usuario_editar"),  # v1.3
+    path("administracion/usuarios/<uuid:pk>/<slug:accion>/", views.usuario_accion, name="usuario_accion"),
+    path("administracion/catalogos/", views.catalogos, name="catalogos"),  # v1.2 (ADR-W-006)
+    path("administracion/catalogos/lote/<str:pk>/", views.catalogo_lote, name="catalogo_lote"),
+    path("administracion/catalogos/hilera/<str:pk>/", views.catalogo_hilera, name="catalogo_hilera"),
+    path("administracion/dispositivos/", views.dispositivos, name="dispositivos"),
+    path("administracion/dispositivos/<uuid:pk>/revocar/", views.dispositivo_revocar, name="dispositivo_revocar"),
+    path("ia/", views.ia_estado, name="ia"),
+    path("ia/tareas/<uuid:pk>/reencolar/", views.ia_reencolar, name="ia_reencolar"),
+    path("auditoria/", views.auditoria, name="auditoria"),
+    path("administracion/limpieza/", views.limpieza_fotos, name="limpieza"),  # v1.3.1 (ADR-W-008)
+    path("modulos-casetas/",views.modulos_casetas, name="modulos_casetas"),
+]

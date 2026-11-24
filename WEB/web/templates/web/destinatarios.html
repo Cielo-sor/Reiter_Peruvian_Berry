@@ -1,0 +1,225 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Destinatarios WhatsApp{% endblock %}
+
+{% block migas %}
+  {% icono "destinatarios" %}
+  <span>Administración</span>
+  <span class="sep">›</span>
+  <span>Destinatarios WhatsApp</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="contactos-panel">
+
+  <header class="contactos-portada">
+    <div>
+      <h1>Destinatarios de avisos</h1>
+    </div>
+
+
+
+  <div class="contactos-contexto">
+    {% icono "info" %}
+    <p>
+      Reciben avisos por WhatsApp cuando el especialista confirma
+      un caso de un lote de su alcance. Deben haber aceptado recibir
+      mensajes y tener una cuenta web para abrir el enlace al caso.
+    </p>
+  </div>
+
+  <div class="contactos-distribucion">
+
+    <!-- CONTACTOS -->
+    <section aria-labelledby="contactos-listado-titulo">
+
+      <header class="contactos-seccion-cabecera">
+        <h2 id="contactos-listado-titulo">Agenda de destinatarios</h2>
+        <p>Consulta sus datos, alcance y autorización de mensajes.</p>
+      </header>
+
+      <div class="contactos-lista">
+        {% for r in lista %}
+          <article class="contacto-ficha{% if editando and editando.pk == r.pk %} contacto-en-edicion{% endif %}">
+
+            <header class="contacto-cabecera">
+              <div class="contacto-identidad">
+                <span class="contacto-icono">
+                  {% icono "destinatarios" %}
+                </span>
+
+                <div>
+                  <h3>{{ r.full_name }}</h3>
+                  <p>{{ r.get_role_label_display }}</p>
+                </div>
+              </div>
+
+              <span class="contacto-estado{% if r.active %} contacto-estado-activo{% endif %}">
+                <i aria-hidden="true"></i>
+                {% if r.active %}Activo{% else %}Inactivo{% endif %}
+              </span>
+            </header>
+
+            {% if editando and editando.pk == r.pk %}
+              <div class="contacto-editando">
+                {% icono "editar" %} Editando este destinatario
+              </div>
+            {% endif %}
+
+            <dl class="contacto-datos">
+              <div>
+                <dt>Celular</dt>
+                <dd class="contacto-telefono">
+                  {% icono "telefono" %}
+                  {{ r.phone_e164 }}
+                </dd>
+              </div>
+
+              <div>
+                <dt>Cuenta vinculada</dt>
+                <dd>
+                  {% if r.user %}
+                    {{ r.user.email }}
+                  {% else %}
+                    <span class="contacto-texto-suave">
+                      Sin cuenta vinculada
+                    </span>
+                  {% endif %}
+                </dd>
+              </div>
+            </dl>
+
+            <div class="contacto-alcance">
+              <h4>Lotes de su alcance</h4>
+
+              <div class="contacto-lotes">
+                {% for l in r.lots.all %}
+                  <span>{% icono "lote" %} {{ l.code }}</span>
+                {% empty %}
+                  <span class="contacto-todos">Todos los lotes</span>
+                {% endfor %}
+              </div>
+            </div>
+
+            <footer class="contacto-pie">
+              <div class="contacto-consentimiento{% if not r.opt_in_at %} contacto-consentimiento-pendiente{% endif %}">
+                {% if r.opt_in_at %}
+                  {% icono "check" %}
+                  <div>
+                    <strong>Consentimiento registrado</strong>
+                    <time datetime="{{ r.opt_in_at|date:'c' }}">
+                      {{ r.opt_in_at|date:"d/m/Y" }}
+                    </time>
+                  </div>
+                {% else %}
+                  {% icono "alerta" %}
+                  <div>
+                    <strong>Falta consentimiento</strong>
+                    <span>Debe aceptar recibir mensajes.</span>
+                  </div>
+                {% endif %}
+              </div>
+
+              <a class="contactos-btn contactos-btn-secundario contactos-btn-pequeno"
+                 href="{% url 'web:destinatario_editar' r.pk %}"
+                 aria-label="Editar destinatario {{ r.full_name }}">
+                {% icono "editar" %} Editar
+              </a>
+            </footer>
+
+          </article>
+        {% empty %}
+          <div class="contactos-vacio">
+            <span>{% icono "destinatarios" %}</span>
+            <h3>Aún no hay destinatarios</h3>
+            <p>
+              Agrega el primer contacto para configurar
+              quién recibirá los avisos de casos confirmados.
+              Sin destinatarios, estos casos no generarán avisos.
+            </p>
+            <a class="contactos-btn contactos-btn-secundario"
+               href="#contacto-formulario">
+              {% icono "user-plus" %} Agregar destinatario
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+
+    </section>
+
+    <!-- FORMULARIO -->
+    <aside class="contactos-lateral" aria-label="Formulario de destinatario">
+
+      <form method="post"
+            id="contacto-formulario"
+            class="formulario contacto-formulario"
+            action="{% if editando %}{% url 'web:destinatario_editar' editando.pk %}{% else %}{% url 'web:destinatarios' %}{% endif %}">
+
+        {% csrf_token %}
+
+        <header class="contacto-form-cabecera">
+          <span class="contacto-form-icono">
+            {% if editando %}
+              {% icono "editar" %}
+            {% else %}
+              {% icono "user-plus" %}
+            {% endif %}
+          </span>
+
+          <div>
+            <span class="contactos-eyebrow">
+              {% if editando %}ACTUALIZAR CONTACTO{% else %}NUEVO CONTACTO{% endif %}
+            </span>
+            <h2>
+              {% if editando %}
+                Editar destinatario
+              {% else %}
+                Agregar destinatario
+              {% endif %}
+            </h2>
+          </div>
+        </header>
+
+        <p class="contacto-form-descripcion">
+          {% if editando %}
+            Actualiza los datos y el alcance de {{ editando.full_name }}.
+          {% else %}
+            Completa los datos del contacto y los lotes sobre los que recibirá avisos.
+          {% endif %}
+        </p>
+
+        <div class="contacto-form-campos">
+          {{ form.as_p }}
+        </div>
+
+        <div class="contacto-form-acciones">
+          <button class="contactos-btn contactos-btn-principal"
+                  type="submit">
+            {% icono "guardar" %}
+            {% if editando %}Guardar cambios{% else %}Guardar destinatario{% endif %}
+          </button>
+
+          {% if editando %}
+            <a class="contacto-cancelar"
+               href="{% url 'web:destinatarios' %}">
+              Cancelar edición
+            </a>
+          {% endif %}
+        </div>
+
+      </form>
+
+      <div class="contactos-recordatorio">
+        {% icono "escudo" %}
+        <p>
+          Registra el consentimiento únicamente cuando la persona
+          haya aceptado recibir avisos por WhatsApp.
+        </p>
+      </div>
+
+    </aside>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,281 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Descartadas por la IA{% endblock %}
+{% block body_class %}pagina-casos pagina-descartadas{% endblock %}
+
+{% block migas %}
+  {% icono "casos" %}
+  <a href="{% url 'web:bandeja' %}">Casos</a>
+  <span class="sep">›</span>
+  <span>Descartadas por la IA</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="casos-pagina">
+
+  <header class="casos-encabezado">
+    <div>
+      <h1>Descartadas por la IA</h1>
+    </div>
+  </header>
+
+  <nav class="casos-pestanas no-imprimir"
+       aria-label="Vistas de casos">
+    <a href="{% url 'web:bandeja' %}">
+      {% icono "bandeja" %} Casos
+    </a>
+    <a href="{% url 'web:descartadas_ia' %}" aria-current="page">
+      {% icono "ia" %} Descartadas por la IA
+    </a>
+  </nav>
+
+
+  <form class="casos-filtros descartadas-filtros no-imprimir"
+      method="get"
+      id="filtros-descartadas"
+      hx-get="{% url 'web:descartadas_ia' %}"
+      hx-target="#resultados-descartadas"
+      hx-select="#resultados-descartadas"
+      hx-swap="outerHTML"
+      hx-push-url="true"
+      hx-trigger="change delay:300ms, submit">
+
+    <div class="casos-filtros-principales">
+      <label class="casos-filtro">
+        <span>Resultado</span>
+        {{ filtro.tipo }}
+      </label>
+
+      <label class="casos-filtro">
+        <span>Lote</span>
+        <select name="lote">
+          <option value="">Todos</option>
+          {% for l in lotes %}
+            {% with seleccionado=filtro.lote.value|stringformat:"s" lote_id=l.pk|stringformat:"s" %}
+              <option value="{{ l.pk }}"
+                      {% if seleccionado == lote_id %}selected{% endif %}>
+                {{ l.code }}
+              </option>
+            {% endwith %}
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="casos-filtro">
+        <span>Orden</span>
+        {{ filtro.orden }}
+      </label>
+    </div>
+
+    <details class="casos-filtros-extra"
+             {% if filtro.desde.value or filtro.hasta.value %}open{% endif %}>
+      <summary>Más filtros</summary>
+
+      <div class="casos-filtros-secundarios">
+        <label class="casos-filtro">
+          <span>Desde</span>
+          {{ filtro.desde }}
+        </label>
+
+        <label class="casos-filtro">
+          <span>Hasta</span>
+          {{ filtro.hasta }}
+        </label>
+      </div>
+    </details>
+
+    <div class="descartadas-filtros-acciones">
+      <a class="casos-limpiar" href="{% url 'web:descartadas_ia' %}">
+        {% icono "deshacer" %} Limpiar
+      </a>
+
+
+    </div>
+
+    {% if filtro.errors %}
+      <div class="descartadas-errores" role="alert">
+        {{ filtro.non_field_errors }}
+        {% for campo in filtro %}
+          {% for error in campo.errors %}
+            <p><strong>{{ campo.label }}:</strong> {{ error }}</p>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </form>
+
+<section id="resultados-descartadas"
+         class="casos-tabla-tarjeta"
+         aria-labelledby="descartadas-titulo">
+
+    <header class="casos-tabla-cabecera">
+      <h2 id="descartadas-titulo">
+        {% icono "ia" %} Fotos analizadas
+      </h2>
+
+      <span class="casos-total">
+        {{ page.paginator.count }} foto{{ page.paginator.count|pluralize }}
+      </span>
+    </header>
+
+    <div class="casos-tabla-scroll"
+         role="region"
+         aria-label="Fotos descartadas por la IA"
+         tabindex="0">
+
+      <table class="casos-tabla">
+        <thead>
+          <tr>
+            <th scope="col">Foto</th>
+            <th scope="col">Ubicación</th>
+            <th scope="col">Resultado de la IA</th>
+            <th scope="col">Análisis IA</th>
+            <th scope="col">Captura</th>
+            <th scope="col">
+              <span class="sr-only">Acciones</span>
+            </th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for t in page.object_list %}
+            {% with c=t.capture %}
+              <tr>
+                <td>
+                  <a class="casos-foto"
+                     href="{% url 'web:captura' c.pk %}"
+                     aria-label="Ver foto {{ c.pk }}">
+                    <img class="foto-carga"
+                         src="{{ t.thumb_url }}"
+                         alt="Foto {{ c.pk|stringformat:'s'|slice:':8' }}"
+                         loading="lazy"
+                         width="80"
+                         height="64">
+                  </a>
+                </td>
+
+                <td class="casos-ubicacion">
+                  <a href="{% url 'web:captura' c.pk %}">
+                    {% if c.monitoring_pass %}
+                      {{ c.monitoring_pass.lot.code }}
+                      · Hilera {{ c.monitoring_pass.row.number }}
+                    {% else %}
+                      Sin pasada
+                    {% endif %}
+                  </a>
+
+                  <small>{{ c.get_lateral_code_display }}</small>
+                  <small>{{ c.get_camera_role_display }}</small>
+                </td>
+
+                <td>
+                  <span class="casos-estado"
+                        data-estado="{{ t.status }}">
+                    <span class="casos-estado-punto"
+                          aria-hidden="true"></span>
+                    {{ t.get_status_display }}
+                  </span>
+                </td>
+
+                <td class="casos-analisis">
+                  {% if t.n_cajas %}
+                    <strong>
+                      {{ t.n_cajas }}
+                      detecci{{ t.n_cajas|pluralize:"ón,ones" }}
+                    </strong>
+
+                    <small>
+                      Confianza máxima: {{ t.conf_max|pctnum:1 }} %
+                    </small>
+
+                    <span class="casos-confianza" aria-hidden="true">
+                      <span style="width: {{ t.conf_max|pctnum:1 }}%"></span>
+                    </span>
+
+                    {% if t.model_config.review_threshold is not None %}
+                      <small class="descartadas-umbral">
+                        Umbral de revisión:
+                        {{ t.model_config.review_threshold|pctnum:1 }} %
+                      </small>
+                    {% endif %}
+                  {% else %}
+                    <span class="descartadas-sin-detecciones">
+                      Sin detecciones registradas
+                    </span>
+                  {% endif %}
+                </td>
+
+                <td class="casos-fecha">
+                  <time datetime="{{ c.captured_at|date:'c' }}">
+                    {{ c.captured_at|date:"d/m/Y" }}
+                    <span>{{ c.captured_at|date:"H:i" }}</span>
+                  </time>
+                </td>
+
+                <td>
+                  <a class="casos-ver"
+                     href="{% url 'web:captura' c.pk %}">
+                    {% icono "ojo" %} Ver foto
+                  </a>
+                </td>
+              </tr>
+            {% endwith %}
+
+          {% empty %}
+            <tr>
+              <td colspan="6">
+                <div class="casos-vacio">
+                  <span class="casos-vacio-icono">
+                    {% icono "brote" %}
+                  </span>
+
+                  <strong>No hay fotos descartadas con estos filtros</strong>
+
+                  <p>
+                    Aquí aparecen las fotos analizadas en las que la IA
+                    no encontró un indicio suficiente para abrir un caso.
+                  </p>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="casos-paginacion">
+      <div class="casos-paginacion-info">
+        <span>
+          {{ page.start_index }}–{{ page.end_index }}
+          de {{ page.paginator.count }} foto{{ page.paginator.count|pluralize }}
+        </span>
+      </div>
+
+      <nav class="casos-paginas" aria-label="Páginas de fotos">
+        {% url 'web:descartadas_ia' as base %}
+
+        {% if page.has_previous %}
+          <a href="{{ base }}{% querystring pagina=page.previous_page_number %}"
+             aria-label="Página anterior">
+            {% icono "izq" %}
+          </a>
+        {% endif %}
+
+        <span class="casos-pagina-actual">
+          {{ page.number }} / {{ page.paginator.num_pages }}
+        </span>
+
+        {% if page.has_next %}
+          <a href="{{ base }}{% querystring pagina=page.next_page_number %}"
+             aria-label="Página siguiente">
+            {% icono "der" %}
+          </a>
+        {% endif %}
+      </nav>
+    </footer>
+
+  </section>
+
+</div>
+{% endblock %}

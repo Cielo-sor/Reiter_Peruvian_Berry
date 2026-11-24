@@ -1,0 +1,293 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Foto {{ capture.pk|stringformat:"s"|slice:":8" }}{% endblock %}
+
+{% block migas %}
+  {% icono "sesiones" %}
+  <a href="{% url 'web:sesiones' %}">Sesiones</a>
+  <span class="sep">›</span>
+  <a href="{% url 'web:sesion' capture.session_id %}">Sesión</a>
+  <span class="sep">›</span>
+  <span>Foto</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="captura-panel">
+
+  <header class="captura-portada">
+    <div>
+      <span class="captura-antetitulo">REGISTRO DE CAMPO</span>
+
+      <h1>
+        Detalle de la fotografía
+      </h1>
+
+      <div class="captura-identidad">
+        <span class="captura-id">
+          #{{ capture.pk|stringformat:"s"|slice:":8" }}
+        </span>
+
+        {% badge capture.quality_status capture.get_quality_status_display %}
+      </div>
+    </div>
+
+    <a class="btn btn-secundario no-imprimir"
+       href="{% url 'web:sesion' capture.session_id %}">
+      {% icono "izq" %}
+      Volver a la sesión
+    </a>
+  </header>
+
+  <div class="captura-distribucion">
+
+    <section class="captura-evidencia" aria-labelledby="captura-foto-titulo">
+
+      <div class="captura-foto-tarjeta">
+        <div class="captura-seccion-cab">
+          <div class="captura-seccion-titulo">
+            <span class="captura-icono">{% icono "imagen" %}</span>
+            <div>
+              <h2 id="captura-foto-titulo">Evidencia fotográfica</h2>
+              <p>{{ capture.get_camera_role_display }}</p>
+            </div>
+          </div>
+
+          <span class="captura-resolucion">
+            {{ capture.width }} × {{ capture.height }} px
+          </span>
+        </div>
+
+        <div class="visor captura-visor" id="visor-foto">
+          {% if NUBE_SIMULADA %}
+            <span class="demo-marca">Foto de demostración</span>
+          {% endif %}
+
+          <div class="lienzo">
+            <img
+              src="{{ img_revision }}"
+              alt="Foto de {{ capture.get_camera_role_display }}{% if capture.monitoring_pass %}, lote {{ capture.monitoring_pass.lot.code }}, hilera {{ capture.monitoring_pass.row.number }}{% endif %}">
+          </div>
+        </div>
+
+        <dl class="captura-datos-rapidos">
+          <div>
+            <dt>{% icono "lote" %} Ubicación</dt>
+            <dd>
+              {% if capture.monitoring_pass %}
+                {{ capture.monitoring_pass.lot.code }}
+                · H{{ capture.monitoring_pass.row.number }}
+              {% else %}
+                Sin pasada asociada
+              {% endif %}
+              <small>{{ capture.get_lateral_code_display }}</small>
+            </dd>
+          </div>
+
+          <div>
+            <dt>{% icono "reloj" %} Fecha de captura</dt>
+            <dd>
+              {{ capture.captured_at|date:"d/m/Y"|default:"—" }}
+              <small>{{ capture.captured_at|date:"H:i:s" }}</small>
+            </dd>
+          </div>
+
+          <div>
+            <dt>{% icono "usuario" %} Usuario en la cámara</dt>
+            <dd>{{ capture.camera_user.full_name|default:"Sin registro" }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <details class="captura-tecnica">
+        <summary>
+          <span>{% icono "lista" %} Información técnica</span>
+          <span class="captura-desplegar" aria-hidden="true">+</span>
+        </summary>
+
+        <dl class="captura-ficha">
+          <div>
+            <dt>Secuencia</dt>
+            <dd>
+              {% if capture.sequence %}
+                N.º {{ capture.sequence.sequence_number }}
+              {% else %}
+                —
+              {% endif %}
+            </dd>
+          </div>
+
+          <div>
+            <dt>Cámara</dt>
+            <dd>{{ capture.get_camera_role_display }}</dd>
+          </div>
+
+          <div>
+            <dt>Celular</dt>
+            <dd>{{ capture.device|default:"—" }}</dd>
+          </div>
+
+          <div>
+            <dt>Tamaño del archivo</dt>
+            <dd>{{ capture.size_bytes|filesizeformat }}</dd>
+          </div>
+
+          <div>
+            <dt>Perfil de calidad</dt>
+            <dd>{{ capture.quality.profile_version|default:"—" }}</dd>
+          </div>
+
+          <div>
+            <dt>Observaciones de calidad</dt>
+            <dd>
+              {% if capture.quality.reasons %}
+                {{ capture.quality.reasons|join:", " }}
+              {% else %}
+                Sin observaciones registradas
+              {% endif %}
+            </dd>
+          </div>
+
+          <div>
+            <dt>Fotografía que reemplaza</dt>
+            <dd>
+              {% if capture.replaces_capture_id %}
+                <a href="{% url 'web:captura' capture.replaces_capture_id %}">
+                  #{{ capture.replaces_capture_id|stringformat:"s"|slice:":8" }}
+                </a>
+              {% else %}
+                No reemplaza otra fotografía
+              {% endif %}
+            </dd>
+          </div>
+        </dl>
+      </details>
+
+    </section>
+
+    <aside class="captura-lateral">
+
+      <section class="captura-analisis" aria-labelledby="captura-analisis-titulo">
+        <div class="captura-seccion-cab">
+          <div class="captura-seccion-titulo">
+            <span class="captura-icono">{% icono "ia" %}</span>
+            <div>
+              <h2 id="captura-analisis-titulo">Análisis de la imagen</h2>
+              <p>Resultados registrados por la IA</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="captura-analisis-lista">
+          {% for t in tasks %}
+            <article class="captura-resultado">
+              <div class="captura-resultado-cab">
+                <span class="captura-resultado-numero">
+                  Análisis {{ forloop.counter }}
+                </span>
+
+                {% badge t.status t.get_status_display %}
+              </div>
+
+              <p class="captura-modelo">
+                {{ t.model_config|default:"Modelo no disponible" }}
+              </p>
+
+              {% if t.conf_max is not None %}
+                <div class="captura-confianza">
+                  <div>
+                    <span>Confianza máxima</span>
+                    <strong>{{ t.conf_max|floatformat:2 }}</strong>
+                  </div>
+
+                  <div class="captura-confianza-barra" aria-hidden="true">
+                    <span style="width: {{ t.conf_max|pctnum:1 }}%"></span>
+                  </div>
+
+                  {% if t.model_config.review_threshold is not None %}
+                    <small>
+                      Umbral de revisión:
+                      {{ t.model_config.review_threshold|floatformat:2 }}
+                    </small>
+                  {% endif %}
+                </div>
+              {% endif %}
+
+              {% if t.processing_ms is not None %}
+                <p class="captura-tiempo">
+                  {% icono "reloj" %}
+                  Procesamiento: {{ t.processing_ms }} ms
+                </p>
+              {% endif %}
+
+              {% if t.error_message %}
+                <details class="captura-error">
+                  <summary>
+                    {% icono "alerta" %}
+                    Ver detalle del error
+                  </summary>
+                  <p>{{ t.error_message }}</p>
+                </details>
+              {% endif %}
+            </article>
+
+          {% empty %}
+            <div class="captura-vacio">
+              <span class="captura-vacio-icono">{% icono "ia" %}</span>
+              <strong>Sin análisis registrado</strong>
+              <p>Las fotografías rechazadas por calidad no se analizan.</p>
+            </div>
+          {% endfor %}
+        </div>
+      </section>
+
+      {% if case %}
+        <section class="captura-revision" aria-labelledby="captura-revision-titulo">
+          <span class="captura-icono">{% icono "casos" %}</span>
+
+          <h2 id="captura-revision-titulo">Caso asociado</h2>
+          <p>Consulta la evidencia y la revisión de este lugar.</p>
+
+          {% if case.capture_id != capture.pk %}
+            <div class="captura-aclaracion">
+              {% icono "info" %}
+              <span>
+                El caso se abrió con la otra cámara del mismo lugar.
+                Las dos fotografías se deciden juntas.
+              </span>
+            </div>
+          {% endif %}
+
+          <a class="btn btn-primario"
+             href="{% url 'web:caso' case.pk %}">
+            {% icono "casos" %}
+            Ver caso del lugar
+            {% icono "der" %}
+          </a>
+        </section>
+
+      {% elif puede_abrir %}
+        <section class="captura-revision" aria-labelledby="captura-revision-titulo">
+          <span class="captura-icono">{% icono "ojo" %}</span>
+
+          <h2 id="captura-revision-titulo">Revisión del especialista</h2>
+          <p>
+            Si identificas un posible indicio que la IA no marcó,
+            o el análisis falló, puedes abrir un caso para revisión.
+          </p>
+
+          <form method="post"
+                action="{% url 'web:captura_abrir_caso' capture.pk %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-primario">
+              {% icono "mas" %}
+              Abrir caso para revisión
+            </button>
+          </form>
+        </section>
+      {% endif %}
+
+    </aside>
+  </div>
+</div>
+{% endblock %}

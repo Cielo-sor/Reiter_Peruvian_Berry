@@ -1,0 +1,290 @@
+{% extends "web/base.html" %}
+{% load static web_tags %}
+
+{% block titulo %}Plano de hileras{% endblock %}
+{% block body_class %}pagina-plano{% endblock %}
+
+{% block migas %}
+  {% icono "plano" %}
+  {% if p %}
+    <span>{{ p.lot.code }}</span>
+  {% endif %}
+{% endblock %}
+
+{% block contenido %}
+<div class="explorador">
+
+  <header class="explorador-titulo">
+    <span class="explorador-emblema">{% icono "plano" %}</span>
+    <div>
+      <h1>Explora tu lote</h1>
+    </div>
+  </header>
+
+  <div class="explorador-grid">
+
+    <section class="explorador-tarjeta explorador-principal"
+             aria-labelledby="titulo-distribucion">
+
+      <header class="explorador-cabecera">
+        <h2 id="titulo-distribucion">Distribución de hileras</h2>
+        {% if p %}
+          <span class="explorador-chip">{{ p.lot.code }}</span>
+        {% endif %}
+      </header>
+
+      {% if p %}
+        <p class="explorador-nombre">{{ p.lot.name }}</p>
+      {% endif %}
+
+      <form method="get"
+            id="filtros-plano"
+            class="explorador-filtros no-imprimir">
+
+        <label>
+          <span>Lote</span>
+          <select name="lote">
+            {% for l in lotes %}
+              <option value="{{ l.pk }}"
+                      {% if p and p.lot.pk == l.pk %}selected{% endif %}>
+                {{ l.code }}
+              </option>
+            {% endfor %}
+          </select>
+        </label>
+
+        <label>
+          <span>Estado</span>
+          {{ filtro.estado }}
+        </label>
+
+        <label>
+          <span>Desde</span>
+          {{ filtro.desde }}
+        </label>
+
+        <label>
+          <span>Hasta</span>
+          {{ filtro.hasta }}
+        </label>
+
+        <noscript>
+          <button class="btn btn-primario" type="submit">Aplicar</button>
+        </noscript>
+      </form>
+
+      {% if filtro.errors %}
+        <div class="explorador-errores" role="alert">
+          {{ filtro.non_field_errors }}
+          {% for campo in filtro %}
+            {% for error in campo.errors %}
+              <p>{{ campo.label }}: {{ error }}</p>
+            {% endfor %}
+          {% endfor %}
+        </div>
+      {% endif %}
+
+      {% if p %}
+        {% if p.rows %}
+          <p class="explorador-instruccion" id="ayuda-hileras">
+            Selecciona una hilera para consultar su detalle.
+          </p>
+
+          <div class="explorador-lienzo"
+               tabindex="0"
+               role="region"
+               aria-label="Hileras del lote {{ p.lot.code }}"
+               aria-describedby="ayuda-hileras">
+
+            <div class="explorador-hileras">
+              {% for r in p.rows %}
+                <button type="button"
+                        class="explorador-hilera"
+                        id="H{{ r.row.number }}"
+                        data-detalle="detalle-hilera-{{ forloop.counter }}"
+                        aria-controls="detalle-hilera"
+                        aria-pressed="false"
+                        aria-label="Hilera {{ r.row.number }}, {{ r.row.plant_count }} plantas{% if r.covered %}, cubierta{% endif %}">
+
+                  <span class="explorador-cobertura-marca"
+                        aria-hidden="true">
+                    {% if r.covered %}✓{% endif %}
+                  </span>
+
+                  <span class="explorador-pista">
+                    <span class="explorador-barra"
+                          style="height: {% bar_width r.row.plant_count p.max_plants %}%">
+
+                      {% for s in r.segments %}
+                        {% with c=s.counts %}
+                          <span class="explorador-segmento"
+                                data-estado="{% if c.CONFIRMADO_POR_ESPECIALISTA %}CONFIRMADO_POR_ESPECIALISTA{% elif c.CONFIRMADO_POR_IA %}CONFIRMADO_POR_IA{% elif c.POSIBLE_PLAGA %}POSIBLE_PLAGA{% elif c.PENDIENTE_REVISION %}PENDIENTE_REVISION{% elif c.EVIDENCIA_INSUFICIENTE %}EVIDENCIA_INSUFICIENTE{% elif c.DESCARTADO %}DESCARTADO{% endif %}"
+                                style="top: {{ s.left_pct|stringformat:'.2f' }}%; height: {{ s.width_pct|stringformat:'.2f' }}%"
+                                title="{{ s.segment.code }} · Plantas {{ s.segment.start_plant }}–{{ s.segment.end_plant }}">
+                          </span>
+                        {% endwith %}
+                      {% endfor %}
+
+                    </span>
+                  </span>
+
+                  <span class="explorador-hilera-nombre">
+                    H{{ r.row.number }}
+                  </span>
+                </button>
+              {% endfor %}
+            </div>
+          </div>
+
+          <p class="explorador-pista-ayuda">
+            {{ p.rows|length }} hileras · Desplázate horizontalmente para ver más.
+          </p>
+
+          <div class="explorador-leyenda" aria-label="Estados de revisión">
+            <span><i data-estado="PENDIENTE_REVISION"></i>Pendiente</span>
+            <span><i data-estado="POSIBLE_PLAGA"></i>Posible plaga</span>
+            <span><i data-estado="CONFIRMADO_POR_IA"></i>Confirmado por IA</span>
+            <span><i data-estado="CONFIRMADO_POR_ESPECIALISTA"></i>Confirmado por especialista</span>
+            <span><i data-estado="EVIDENCIA_INSUFICIENTE"></i>Evidencia insuficiente</span>
+            <span><i data-estado="DESCARTADO"></i>Descartado</span>
+          </div>
+
+          <p class="explorador-aclaracion">
+            Un segmento puede reunir varios estados. Su color resume
+            uno de ellos; consulta los conteos en el detalle.
+          </p>
+
+        {% else %}
+          <div class="explorador-vacio">
+            {% icono "plano" %}
+            <p>Este lote todavía no tiene hileras registradas.</p>
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="explorador-vacio">
+          {% icono "lote" %}
+          <p>No hay lotes activos. Créalos en Gestión.</p>
+        </div>
+      {% endif %}
+    </section>
+
+    {% if p %}
+      <aside class="explorador-lateral" aria-label="Resumen del lote">
+
+        <section class="explorador-tarjeta explorador-cobertura">
+          <h2>Cobertura del lote</h2>
+
+          <div class="explorador-cifra">
+            <strong>{{ p.covered }}</strong>
+            <span>de {{ p.rows|length }}</span>
+          </div>
+
+          <div class="explorador-cobertura-texto">
+            <span>hileras cubiertas</span>
+            <strong>
+              {% if p.rows %}
+                {% widthratio p.covered p.rows|length 100 %} %
+              {% else %}
+                0 %
+              {% endif %}
+            </strong>
+          </div>
+
+          <div class="explorador-progreso" aria-hidden="true">
+            <span style="width: {% if p.rows %}{% widthratio p.covered p.rows|length 100 %}{% else %}0{% endif %}%"></span>
+          </div>
+
+          <p class="explorador-cobertura-nota">
+            {% icono "check" %} Ambos laterales completados.
+          </p>
+        </section>
+
+        <section class="explorador-tarjeta explorador-detalle">
+          <span class="explorador-etiqueta">HILERA SELECCIONADA</span>
+
+          <div id="detalle-hilera" aria-live="polite" aria-atomic="true">
+            <p class="explorador-aclaracion">
+              Selecciona una hilera del plano para consultar sus datos.
+            </p>
+          </div>
+        </section>
+
+        <p class="explorador-nota">
+          {% icono "info" %}
+          Los colores indican el estado de revisión, no la gravedad.
+        </p>
+      </aside>
+    {% endif %}
+
+  </div>
+
+  {% if p %}
+    {% for r in p.rows %}
+      <template id="detalle-hilera-{{ forloop.counter }}">
+
+        <div class="explorador-detalle-titulo">
+          <h2>Hilera {{ r.row.number }}</h2>
+          <span class="explorador-chip {% if not r.covered %}explorador-chip-neutro{% endif %}">
+            {% if r.covered %}Cubierta{% else %}Sin completar{% endif %}
+          </span>
+        </div>
+
+        <p class="explorador-plantas">
+          {{ r.row.plant_count }} plantas registradas
+        </p>
+
+        <h3>Casos con los filtros actuales</h3>
+
+        <ul class="explorador-conteos">
+          {% for k, v in r.counts.items %}
+            <li>
+              <span>
+                <i data-estado="{{ k }}"></i>
+                {% if k == "PENDIENTE_REVISION" %}Pendientes
+                {% elif k == "CONFIRMADO_POR_ESPECIALISTA" %}Confirmados por especialista
+                {% elif k == "CONFIRMADO_POR_IA" %}Confirmados por IA
+                {% elif k == "POSIBLE_PLAGA" %}Posible plaga
+                {% elif k == "EVIDENCIA_INSUFICIENTE" %}Evidencia insuficiente
+                {% elif k == "DESCARTADO" %}Descartados
+                {% else %}{{ k }}{% endif %}
+              </span>
+              <strong>{{ v }}</strong>
+            </li>
+          {% empty %}
+            <li class="explorador-sin-casos">
+              Sin casos con los filtros actuales.
+            </li>
+          {% endfor %}
+        </ul>
+
+        <h3>Segmentos registrados</h3>
+
+        <ul class="explorador-segmentos-lista">
+          {% for s in r.segments %}
+            <li>
+              <strong>{{ s.segment.code }}</strong>
+              <span>
+                Plantas {{ s.segment.start_plant }}–{{ s.segment.end_plant }}
+              </span>
+            </li>
+          {% empty %}
+            <li>Sin segmentos registrados.</li>
+          {% endfor %}
+        </ul>
+
+        {% if puede.bandeja_ver %}
+          <a class="explorador-ver-casos "
+             href="{% url 'web:bandeja' %}?estado=&amp;lote={{ p.lot.pk|urlencode }}">
+            Ver todos los casos del lote {% icono "der" %}
+          </a>
+        {% endif %}
+
+      </template>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'web/plano.js' %}" defer></script>
+{% endblock %}

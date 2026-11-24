@@ -1,0 +1,122 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+{% block titulo %}Casos{% endblock %}
+{% block body_class %}pagina-casos{% endblock %}
+
+{% block contenido %}
+<div class="casos-pagina">
+
+  <header class="casos-encabezado">
+    <div>
+      <h1>Bandeja de casos</h1>
+    </div>
+
+    <div class="casos-acciones no-imprimir">
+      {% if puede.reportes_exportar %}
+        <a class="btn btn-primario"
+           href="{% url 'web:exportar_casos' %}?{{ request.GET.urlencode }}"
+           data-descarga>
+          {% icono "descargar" %} CSV
+        </a>
+      {% endif %}
+
+      {% if puede.mapa_ver %}
+        <a class="btn btn-primario" href="{% url 'web:mapa' %}">
+          {% icono "mapa" %} Mapa
+        </a>
+      {% endif %}
+    </div>
+  </header>
+
+  <nav class="casos-pestanas no-imprimir" aria-label="Vistas de casos">
+    <a href="{% url 'web:bandeja' %}" aria-current="page">
+      {% icono "bandeja" %} Casos
+    </a>
+
+    <a href="{% url 'web:descartadas_ia' %}">
+      {% icono "ia" %} Descartadas por la IA
+    </a>
+  </nav>
+
+  <form class="casos-filtros no-imprimir"
+        method="get"
+        hx-get="{% url 'web:bandeja' %}"
+        hx-target="#bandeja"
+        hx-swap="outerHTML"
+        hx-push-url="true"
+        hx-trigger="change, submit"
+        id="filtros-bandeja">
+
+    <div class="casos-filtros-principales">
+      <label class="casos-filtro">
+        <span>Estado</span>
+        {{ filtro.estado }}
+      </label>
+
+      <label class="casos-filtro">
+        <span>Lote</span>
+        <select name="lote">
+          <option value="">Todos</option>
+          {% for l in lotes %}
+            {% with seleccionado=filtro.lote.value|stringformat:"s" lote_id=l.pk|stringformat:"s" %}
+              <option value="{{ l.pk }}"
+                      {% if seleccionado == lote_id %}selected{% endif %}>
+                {{ l.code }}
+              </option>
+            {% endwith %}
+          {% endfor %}
+        </select>
+      </label>
+
+      <label class="casos-filtro">
+        <span>Orden</span>
+        {{ filtro.orden }}
+      </label>
+
+      <a class="casos-limpiar"
+         href="{% url 'web:bandeja' %}"
+         title="Volver a los pendientes">
+        {% icono "deshacer" %}
+        Limpiar
+      </a>
+    </div>
+
+    <details class="casos-filtros-extra"
+             {% if filtro.origen.value or filtro.desde.value or filtro.hasta.value %}open{% endif %}>
+      <summary>Más filtros</summary>
+
+      <div class="casos-filtros-secundarios">
+        <label class="casos-filtro">
+          <span>Origen</span>
+          {{ filtro.origen }}
+        </label>
+
+        <label class="casos-filtro">
+          <span>Desde</span>
+          {{ filtro.desde }}
+        </label>
+
+        <label class="casos-filtro">
+          <span>Hasta</span>
+          {{ filtro.hasta }}
+        </label>
+      </div>
+    </details>
+
+    <noscript>
+      <button class="btn btn-primario" type="submit">Filtrar</button>
+    </noscript>
+  </form>
+
+  {% include "web/partials/bandeja_tabla.html" %}
+
+  <div id="descartadas-resumen"
+       class="no-imprimir"
+       hx-get="{% url 'web:descartadas_resumen' %}"
+       hx-include="#filtros-bandeja"
+       hx-trigger="load, change from:#filtros-bandeja delay:300ms"
+       hx-swap="innerHTML">
+  </div>
+
+</div>
+{% endblock %}

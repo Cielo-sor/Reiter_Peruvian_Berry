@@ -1,0 +1,282 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Editar cuenta{% endblock %}
+
+{% block migas %}
+  {% icono "usuarios" %}
+  <span>Administración</span>
+  <span class="sep">›</span>
+  <a href="{% url 'web:usuarios' %}">Usuarios</a>
+  <span class="sep">›</span>
+  <span>{{ cuenta.full_name }}</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="perfil-admin">
+
+  <header class="perfil-portada">
+    <div>
+      <span class="perfil-eyebrow">ADMINISTRACIÓN DE ACCESOS</span>
+      <h1>Editar cuenta</h1>
+      <p>Actualiza la información de ingreso y contacto de esta persona.</p>
+    </div>
+
+    <a class="perfil-btn perfil-btn-secundario"
+       href="{% url 'web:usuarios' %}">
+      {% icono "izq" %} Volver a usuarios
+    </a>
+  </header>
+
+  <div class="perfil-distribucion">
+
+    <!-- RESUMEN -->
+    <aside class="perfil-resumen" aria-label="Resumen de la cuenta">
+
+      <span class="perfil-eyebrow">CUENTA SELECCIONADA</span>
+      <h2>{{ cuenta.full_name }}</h2>
+      <p class="perfil-correo">{{ cuenta.email }}</p>
+
+      {% if es_yo %}
+        <span class="perfil-tu-cuenta">Estás editando tu cuenta</span>
+      {% endif %}
+
+      <div class="perfil-resumen-seccion">
+        <h3>Estado de acceso</h3>
+
+        <span class="perfil-estado" data-estado="{{ cuenta.status }}">
+          <i aria-hidden="true"></i>
+          {{ cuenta.get_status_display }}
+        </span>
+
+        {% if cuenta.must_change_password %}
+          <p class="perfil-clave-temporal">
+            {% icono "llave" %}
+            Debe cambiar su contraseña al ingresar.
+          </p>
+        {% endif %}
+      </div>
+
+      <div class="perfil-resumen-seccion">
+        <h3>Roles asignados</h3>
+        <div class="perfil-roles">
+          {% for r in cuenta.user_roles.all %}
+            <span>{{ r.get_role_display }}</span>
+          {% empty %}
+            <span>Sin roles asignados</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="perfil-trazabilidad">
+        {% icono "auditoria" %}
+        <p>
+          Los cambios realizados en esta cuenta
+          quedan registrados en la auditoría.
+        </p>
+      </div>
+
+    </aside>
+
+    <div class="perfil-contenido">
+
+      <!-- DATOS -->
+      <section class="perfil-tarjeta"
+               aria-labelledby="perfil-datos-titulo">
+
+        <header class="perfil-seccion-cabecera">
+          <span class="perfil-icono">{% icono "usuario" %}</span>
+          <div>
+            <h2 id="perfil-datos-titulo">Datos de la persona</h2>
+            <p>Información de ingreso y contacto.</p>
+          </div>
+        </header>
+
+        <form method="post"
+              class="formulario perfil-formulario"
+              novalidate>
+          {% csrf_token %}
+
+          {% if datos.non_field_errors %}
+            <div class="perfil-errores" role="alert">
+              {{ datos.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <div class="campo">
+            <label for="{{ datos.full_name.id_for_label }}">
+              {{ datos.full_name.label }}
+            </label>
+            {{ datos.full_name }}
+            {{ datos.full_name.errors }}
+          </div>
+
+          <div class="campo">
+            <label for="{{ datos.email.id_for_label }}">
+              {{ datos.email.label }}
+            </label>
+            {{ datos.email }}
+            {{ datos.email.errors }}
+
+            <p class="perfil-ayuda">
+              Este correo identifica la cuenta al iniciar sesión.
+              Cambiarlo cierra su sesión en la app.
+            </p>
+          </div>
+
+          <div class="perfil-campos-dos">
+            <div class="campo">
+              <label for="{{ datos.phone.id_for_label }}">
+                {{ datos.phone.label }}
+                <small>(opcional)</small>
+              </label>
+              {{ datos.phone }}
+              {{ datos.phone.errors }}
+            </div>
+
+            <div class="campo">
+              <label for="{{ datos.employee_code.id_for_label }}">
+                {{ datos.employee_code.label }}
+                <small>(opcional)</small>
+              </label>
+              {{ datos.employee_code }}
+              {{ datos.employee_code.errors }}
+            </div>
+          </div>
+
+          <footer class="perfil-form-pie">
+            <span>Revisa la información antes de guardar.</span>
+
+            <button class="perfil-btn perfil-btn-principal"
+                    type="submit"
+                    name="guardar_datos"
+                    value="1">
+              {% icono "guardar" %} Guardar datos
+            </button>
+          </footer>
+
+        </form>
+      </section>
+
+      <!-- CONTRASEÑA -->
+      <section class="perfil-tarjeta perfil-seguridad"
+               aria-labelledby="perfil-seguridad-titulo">
+
+        <header class="perfil-seccion-cabecera">
+          <span class="perfil-icono">{% icono "llave" %}</span>
+          <div>
+            <h2 id="perfil-seguridad-titulo">Seguridad de acceso</h2>
+            <p>
+              {% if es_yo %}
+                Administra tu contraseña desde su sección.
+              {% else %}
+                Asigna una nueva contraseña a esta cuenta.
+              {% endif %}
+            </p>
+          </div>
+        </header>
+
+        {% if es_yo %}
+          <div class="perfil-clave-propia">
+            <p>
+              Para actualizar tu contraseña, utiliza el formulario
+              de cambio de contraseña de tu cuenta.
+            </p>
+            <a class="perfil-btn perfil-btn-secundario"
+               href="{% url 'web:cambiar_contrasena' %}">
+              {% icono "llave" %} Cambiar mi contraseña
+            </a>
+          </div>
+
+        {% else %}
+          <form method="post"
+                class="formulario perfil-formulario"
+                novalidate
+                data-confirmar="¿Asignar esta contraseña a {{ cuenta.full_name }}? Se cerrará su sesión en la app.">
+
+            {% csrf_token %}
+
+            {% if clave.non_field_errors %}
+              <div class="perfil-errores" role="alert">
+                {{ clave.non_field_errors }}
+              </div>
+            {% endif %}
+
+            <div class="perfil-aviso">
+              {% icono "info" %}
+              <span>
+                Usa al menos 8 caracteres, con letras y números.
+                Al asignar la contraseña se cerrará su sesión en la app.
+              </span>
+            </div>
+
+            <div class="perfil-campos-dos">
+              <div class="campo">
+                <label for="{{ clave.password1.id_for_label }}">
+                  {{ clave.password1.label }}
+                </label>
+
+                <div class="campo-clave">
+                  {{ clave.password1 }}
+                  <button type="button"
+                          class="mostrar"
+                          data-mostrar="{{ clave.password1.id_for_label }}"
+                          aria-controls="{{ clave.password1.id_for_label }}"
+                          aria-pressed="false">
+                    Mostrar
+                  </button>
+                </div>
+
+                {{ clave.password1.errors }}
+              </div>
+
+              <div class="campo">
+                <label for="{{ clave.password2.id_for_label }}">
+                  {{ clave.password2.label }}
+                </label>
+
+                <div class="campo-clave">
+                  {{ clave.password2 }}
+                  <button type="button"
+                          class="mostrar"
+                          data-mostrar="{{ clave.password2.id_for_label }}"
+                          aria-controls="{{ clave.password2.id_for_label }}"
+                          aria-pressed="false">
+                    Mostrar
+                  </button>
+                </div>
+
+                {{ clave.password2.errors }}
+              </div>
+            </div>
+
+            <label class="casilla perfil-cambio-obligatorio">
+              {{ clave.must_change }}
+              <span>{{ clave.must_change.label }}</span>
+            </label>
+            {{ clave.must_change.errors }}
+
+            <p class="perfil-ayuda">
+              Si prefieres una contraseña generada por el sistema,
+              usa «Generar contraseña temporal» en las acciones
+              del directorio de usuarios.
+            </p>
+
+            <footer class="perfil-form-pie">
+              <button class="perfil-btn perfil-btn-principal"
+                      type="submit"
+                      name="asignar_clave"
+                      value="1">
+                {% icono "llave" %} Asignar contraseña
+              </button>
+            </footer>
+
+          </form>
+        {% endif %}
+
+      </section>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

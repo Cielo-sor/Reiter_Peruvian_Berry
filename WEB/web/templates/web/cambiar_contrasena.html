@@ -1,0 +1,151 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Cambiar contraseña{% endblock %}
+
+{% block migas %}
+  {% icono "llave" %}
+  <span>Cuenta</span>
+  <span class="sep">›</span>
+  <span>Contraseña</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="clave-pagina">
+
+  <section class="clave-tarjeta" aria-labelledby="clave-titulo">
+
+    <header class="clave-cabecera">
+      <h1 id="clave-titulo">Cambiar contraseña</h1>
+      <p>Actualiza tu contraseña para proteger el acceso a la plataforma.</p>
+    </header>
+
+    {% if user.must_change_password %}
+      <div class="clave-aviso" role="note">
+        {% icono "info" %}
+        <span>
+          Estás usando una contraseña temporal.
+          Crea una nueva para continuar.
+        </span>
+      </div>
+    {% endif %}
+
+    {% if form.errors %}
+      <p class="clave-error" role="alert">Revisa los campos indicados y vuelve a guardar.</p>
+    {% endif %}
+
+    <form method="post"
+          class="formulario clave-formulario"
+          id="form-contrasena">
+
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="clave-errores-generales" role="alert">
+          {{ form.non_field_errors }}
+        </div>
+      {% endif %}
+
+      <div class="campo">
+        <label for="{{ form.old_password.id_for_label }}">
+          {% if user.must_change_password %}
+            Contraseña temporal
+          {% else %}
+            Contraseña actual
+          {% endif %}
+        </label>
+
+        <div class="campo-clave">
+          {{ form.old_password }}
+          <button type="button"
+                  class="mostrar"
+                  data-mostrar="{{ form.old_password.id_for_label }}"
+                  aria-controls="{{ form.old_password.id_for_label }}"
+                  aria-pressed="false">
+            Mostrar
+          </button>
+        </div>
+
+        {% if user.must_change_password %}
+          <p class="clave-ayuda">
+            Ingresa la contraseña que te entregó el administrador.
+          </p>
+        {% endif %}
+
+        {{ form.old_password.errors }}
+      </div>
+
+      <div class="clave-separador"></div>
+
+      <div class="campo">
+        <label for="{{ form.new_password1.id_for_label }}">
+          Nueva contraseña
+        </label>
+
+        <div class="campo-clave">
+          {{ form.new_password1 }}
+          <button type="button"
+                  class="mostrar"
+                  data-mostrar="{{ form.new_password1.id_for_label }}"
+                  aria-controls="{{ form.new_password1.id_for_label }}"
+                  aria-pressed="false">
+            Mostrar
+          </button>
+        </div>
+
+        {{ form.new_password1.errors }}
+      </div>
+
+      <div class="campo">
+        <label for="{{ form.new_password2.id_for_label }}">
+          Confirma la nueva contraseña
+        </label>
+
+        <div class="campo-clave">
+          {{ form.new_password2 }}
+          <button type="button"
+                  class="mostrar"
+                  data-mostrar="{{ form.new_password2.id_for_label }}"
+                  aria-controls="{{ form.new_password2.id_for_label }}"
+                  aria-pressed="false">
+            Mostrar
+          </button>
+        </div>
+
+        {{ form.new_password2.errors }}
+      </div>
+
+      <div class="clave-requisitos">
+        <h2>Requisitos de seguridad</h2>
+
+        <ul class="requisitos" id="requisitos" aria-live="polite">
+          <li data-regla="largo">
+            <span class="marca" aria-hidden="true">✓</span>
+            Al menos 8 caracteres
+          </li>
+          <li data-regla="letras">
+            <span class="marca" aria-hidden="true">✓</span>
+            Letras y números
+          </li>
+          <li data-regla="espacios">
+            <span class="marca" aria-hidden="true">✓</span>
+            Sin espacios al inicio ni al final
+          </li>
+          <li>Evita contraseñas comunes o parecidas a tus datos personales.</li>
+          <li data-regla="iguales">
+            <span class="marca" aria-hidden="true">✓</span>
+            La confirmación coincide
+          </li>
+        </ul>
+      </div>
+
+      <button class="btn btn-primario clave-guardar" type="submit">
+        {% icono "guardar" %}
+        Guardar contraseña
+      </button>
+
+    </form>
+  </section>
+
+</div>
+{% endblock %}

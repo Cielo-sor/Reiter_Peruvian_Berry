@@ -1,0 +1,159 @@
+{% extends "web/base.html" %}
+{% load web_tags %}
+
+{% block titulo %}Celulares{% endblock %}
+
+{% block migas %}
+  {% icono "celulares" %}
+  <span>Administración</span>
+  <span class="sep">›</span>
+  <span>Celulares</span>
+{% endblock %}
+
+{% block contenido %}
+<div class="equipos-panel">
+
+  <header class="equipos-portada">
+    <div>
+      <span class="equipos-eyebrow">ACCESO DESDE CAMPO</span>
+      <h1>Celulares registrados</h1>
+      <p>Consulta las instalaciones de la app y administra su acceso.</p>
+    </div>
+
+    <span class="equipos-portada-icono" aria-hidden="true">
+      {% icono "celulares" %}
+    </span>
+  </header>
+
+  <div class="equipos-informacion">
+    <span class="equipos-info-icono">{% icono "info" %}</span>
+    <div>
+      <strong>Registro automático</strong>
+      <p>
+        Cada instalación se registra cuando una persona inicia sesión
+        con conexión a internet en la app.
+      </p>
+    </div>
+  </div>
+
+  <section aria-labelledby="equipos-listado-titulo">
+    <header class="equipos-seccion-cabecera">
+      <h2 id="equipos-listado-titulo">Instalaciones de la app</h2>
+      <span>Una ficha por instalación registrada</span>
+    </header>
+
+    <div class="equipos-grid">
+      {% for d in lista %}
+        <article class="equipo-ficha{% if d.revoked_at %} equipo-revocado{% endif %}">
+
+          <header class="equipo-cabecera">
+            <span class="equipo-icono">
+              {% icono "celulares" %}
+            </span>
+
+            <span class="equipo-estado {% if d.revoked_at %}equipo-estado-revocado{% else %}equipo-estado-habilitado{% endif %}">
+              <i aria-hidden="true"></i>
+              {% if d.revoked_at %}Revocado{% else %}Habilitado{% endif %}
+            </span>
+          </header>
+
+          <div class="equipo-identidad">
+            <h3>{{ d.model|default:"Modelo no informado" }}</h3>
+            <p>
+              {{ d.get_platform_display }}
+              {% if d.os_version %} · {{ d.os_version }}{% endif %}
+            </p>
+          </div>
+
+          <dl class="equipo-datos">
+            <div>
+              <dt>{% icono "usuario" %} Último usuario</dt>
+              <dd>{{ d.user.full_name|default:"Sin usuario registrado" }}</dd>
+            </div>
+
+            <div>
+              <dt>{% icono "telefono" %} Versión de la app</dt>
+              <dd>
+                <span class="equipo-version">
+                  {{ d.app_version|default:"No informada" }}
+                </span>
+              </dd>
+            </div>
+
+            <div>
+              <dt>{% icono "reloj" %} Última actividad registrada</dt>
+              <dd>
+                {% if d.last_seen_at %}
+                  <time datetime="{{ d.last_seen_at|date:'c' }}"
+                        title="{{ d.last_seen_at|date:'d/m/Y H:i' }}"
+                        data-relativo>
+                    {{ d.last_seen_at|date:"d/m/Y H:i" }}
+                  </time>
+                {% else %}
+                  Sin actividad registrada
+                {% endif %}
+              </dd>
+            </div>
+          </dl>
+
+          <details class="equipo-identificador">
+            <summary>
+              Identificador de instalación
+              <code>{{ d.device_id|stringformat:"s"|slice:":8" }}</code>
+            </summary>
+            <code class="equipo-id-completo">{{ d.device_id }}</code>
+          </details>
+
+          <footer class="equipo-pie">
+            {% if d.revoked_at %}
+              <div class="equipo-revocacion">
+                {% icono "bloquear" %}
+                <div>
+                  <strong>Acceso revocado</strong>
+                  <span>{{ d.revoked_at|date:"d/m/Y H:i" }}</span>
+                </div>
+              </div>
+            {% else %}
+              <span class="equipo-pie-ayuda">
+                Permiso de acceso habilitado.
+              </span>
+
+              <form method="post"
+                    action="{% url 'web:dispositivo_revocar' d.pk %}"
+                    data-confirmar="¿Revocar el celular {{ d.model|default:'sin modelo informado' }}? Esta instalación dejará de poder usar la app. La acción es irreversible en esta versión.">
+                {% csrf_token %}
+                <button class="equipo-revocar" type="submit">
+                  {% icono "bloquear" %} Revocar acceso
+                </button>
+              </form>
+            {% endif %}
+          </footer>
+
+        </article>
+      {% empty %}
+        <div class="equipos-vacio">
+          <span class="equipos-vacio-icono">
+            {% icono "celulares" %}
+          </span>
+          <h3>Todavía no hay celulares registrados</h3>
+          <p>
+            Las instalaciones aparecerán aquí cuando alguien inicie
+            sesión con internet desde la app móvil.
+          </p>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <div class="equipos-nota-final">
+    {% icono "escudo" %}
+    <p>
+      <strong>Habilitado no significa conectado.</strong>
+      Consulta la última actividad para conocer el registro más reciente.
+      Revocar una instalación impide su acceso y no se puede deshacer
+      en esta versión.
+    </p>
+  </div>
+
+</div>
+{% endblock %}
