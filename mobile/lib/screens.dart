@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -137,8 +138,7 @@ class _ResultView extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       ClipRRect(
         borderRadius: BorderRadius.circular(12),
-        child: Image.network(record.annotatedUrl, fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const SizedBox(height: 120, child: Center(child: Icon(Icons.broken_image)))),
+        child: _PrivateImage(url: record.annotatedUrl),
       ),
       const SizedBox(height: 12),
       Row(children: [
@@ -218,8 +218,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               return ListTile(
                 leading: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.network(it.annotatedUrl, width: 56, height: 56, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox(width: 56, height: 56, child: Icon(Icons.broken_image))),
+                  child: _PrivateImage(url: it.annotatedUrl, size: 56),
                 ),
                 title: Text(has ? 'Defectos (${it.defectCount})' : 'Sin defectos',
                     style: TextStyle(color: tileColor, fontWeight: FontWeight.w600)),
@@ -243,14 +242,55 @@ class _HistoryScreenState extends State<HistoryScreen> {
 }
 
 // ───────────────────────── Ajustes ─────────────────────────
+class _PrivateImage extends StatefulWidget {
+  final String url;
+  final double? size;
+  const _PrivateImage({required this.url, this.size});
+
+  @override
+  State<_PrivateImage> createState() => _PrivateImageState();
+}
+
+class _PrivateImageState extends State<_PrivateImage> {
+  late Future<Uint8List> _photo = ApiService.annotatedImage(widget.url);
+
+  @override
+  void didUpdateWidget(covariant _PrivateImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.url != oldWidget.url) _photo = ApiService.annotatedImage(widget.url);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List>(
+      future: _photo,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+          return Image.memory(snapshot.data!, width: widget.size, height: widget.size,
+              cacheWidth: widget.size == null ? null : 112, fit: BoxFit.cover);
+        }
+        return SizedBox(
+          width: widget.size,
+          height: widget.size ?? 120,
+          child: Center(child: Icon(snapshot.hasError ? Icons.broken_image : Icons.image_outlined)),
+        );
+      },
+    );
+  }
+}
+
 class SettingsScreen extends StatefulWidget {
-  const SettingsScreen({super.key});
+  final VoidCallback onSessionChanged;
+  const SettingsScreen({super.key, required this.onSessionChanged});
   @override
   State<SettingsScreen> createState() => _SettingsScreenState();
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _url = TextEditingController();
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  bool _busy = false;
   String? _status;
 
   @override
@@ -264,15 +304,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _url.dispose();
+    _email.dispose();
+    _password.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
+  Future<void> _run(Future<String> Function() action) async {
+    setState(() {
+      _busy = true;
+      _status = null;
+    });
+    try {
+      final message = await action();
+      if (mounted) setState(() => _status = message);
+    } catch (error) {
+      if (mounted) setState(() => _status = error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<String> _save() async {
     await ApiService.setBaseUrl(_url.text);
-    setState(() => _status = 'Probando conexión...');
-    final ok = await ApiService.checkHealth();
-    if (!mounted) return;
-    setState(() => _status = ok ? '✅ Conectado correctamente' : '❌ No se pudo conectar');
+    if (mounted) widget.onSessionChanged();
+    return await ApiService.checkHealth() ? 'Conectado correctamente' : 'No se pudo conectar';
+  }
+
+  Future<String> _signIn() async {
+    await ApiService.setBaseUrl(_url.text);
+    if (mounted) widget.onSessionChanged();
+    await ApiService.signIn(_email.text, _password.text);
+    if (mounted) _password.clear();
+    return 'Sesión iniciada. Ya puedes enviar fotos.';
+  }
+
+  Future<String> _signOut() async {
+    try {
+      await ApiService.signOut();
+    } finally {
+      if (mounted) widget.onSessionChanged();
+    }
+    return 'Sesión cerrada.';
   }
 
   @override
@@ -282,11 +354,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
       const SizedBox(height: 8),
       TextField(
         controller: _url,
+        enabled: !_busy,
         keyboardType: TextInputType.url,
         decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'http://192.168.1.50:8000'),
       ),
       const SizedBox(height: 12),
-      FilledButton(onPressed: _save, child: const Text('Guardar y probar')),
+      OutlinedButton(onPressed: _busy ? null : () => _run(_save), child: const Text('Guardar y probar')),
+      const SizedBox(height: 24),
+      TextField(
+        controller: _email,
+        enabled: !_busy,
+        keyboardType: TextInputType.emailAddress,
+        decoration: const InputDecoration(labelText: 'Correo'),
+      ),
+      TextField(
+        controller: _password,
+        enabled: !_busy,
+        obscureText: true,
+        decoration: const InputDecoration(labelText: 'Contraseña'),
+      ),
+      const SizedBox(height: 12),
+      FilledButton(onPressed: _busy ? null : () => _run(_signIn), child: const Text('Iniciar sesión')),
+      TextButton(onPressed: _busy ? null : () => _run(_signOut), child: const Text('Cerrar sesión')),
       if (_status != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_status!)),
       const SizedBox(height: 24),
       const Text('Emulador Android: http://10.0.2.2:8000\nCelular por USB (adb reverse): http://localhost:8000\nCelular por Wi-Fi: IP de tu PC en la misma red.'),

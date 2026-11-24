@@ -4,6 +4,7 @@ from django.urls import re_path
 from drf_spectacular.views import SpectacularAPIView
 
 from api.v1 import views
+from inspecciones import views as inspecciones
 
 UUID = r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 
@@ -14,6 +15,9 @@ def r(route, view, name):
 
 app_name = "api"
 urlpatterns = [
+    r("inspecciones", inspecciones.InspeccionesView, "inspecciones"),
+    r(r"inspecciones/(?P<pk>[0-9]+)/(?P<variante>original|anotada)",
+      inspecciones.ImagenView, "inspeccion_imagen"),
     r("health", views.HealthView, "health"),
     r("auth/register", views.RegisterView, "register"),
     r("auth/login", views.LoginView, "login"),

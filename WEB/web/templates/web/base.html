@@ -76,6 +76,11 @@
 </a>
 {% endif %}
 
+{% if puede.inspecciones_ver %}
+<a class="item" href="{% url 'web:inspecciones' %}" {% if n == 'inspecciones' %}aria-current="page"{% endif %}>
+    {% icono "reportes" %}<span class="txt">Inspecciones</span>
+</a>
+{% endif %}
 {% if puede.reportes_exportar %}
 <a class="item" href="{% url 'web:reportes' %}"
    {% if n == 'reportes' %}aria-current="page"{% endif %}>

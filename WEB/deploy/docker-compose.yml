@@ -6,10 +6,10 @@
 # Aislamiento: usuario sin privilegios dentro del contenedor, sistema de archivos de solo lectura, sin capacidades
 # de Linux, límites de RAM/CPU (OpenClaw nunca se queda sin recursos) y logs con tope de tamaño.
 # Las variables ${...} las escribe deploy/instalar.sh en deploy/.env; los secretos van en deploy/.env.piloto.
-name: riachuelo
+name: reiter
 
 x-comun: &comun
-  image: riachuelo-plataforma:latest
+  image: reiter-plataforma:latest
   env_file: [.env.piloto]
   restart: unless-stopped
   read_only: true
@@ -51,18 +51,18 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=${TRAEFIK_NETWORK}"
-      - "traefik.http.services.riachuelo.loadbalancer.server.port=8000"
-      - "traefik.http.routers.riachuelo.rule=Host(`${DOMINIO}`)"
-      - "traefik.http.routers.riachuelo.entrypoints=${TRAEFIK_ENTRY_HTTPS}"
-      - "traefik.http.routers.riachuelo.tls=true"
-      - "traefik.http.routers.riachuelo.tls.certresolver=${TRAEFIK_CERTRESOLVER}"
-      - "traefik.http.routers.riachuelo.service=riachuelo"
-      - "traefik.http.routers.riachuelo-http.rule=Host(`${DOMINIO}`)"
-      - "traefik.http.routers.riachuelo-http.entrypoints=${TRAEFIK_ENTRY_HTTP}"
-      - "traefik.http.routers.riachuelo-http.middlewares=riachuelo-a-https"
-      - "traefik.http.routers.riachuelo-http.service=riachuelo"
-      - "traefik.http.middlewares.riachuelo-a-https.redirectscheme.scheme=https"
-      - "traefik.http.middlewares.riachuelo-a-https.redirectscheme.permanent=true"
+      - "traefik.http.services.reiter.loadbalancer.server.port=8000"
+      - "traefik.http.routers.reiter.rule=Host(`${DOMINIO}`)"
+      - "traefik.http.routers.reiter.entrypoints=${TRAEFIK_ENTRY_HTTPS}"
+      - "traefik.http.routers.reiter.tls=true"
+      - "traefik.http.routers.reiter.tls.certresolver=${TRAEFIK_CERTRESOLVER}"
+      - "traefik.http.routers.reiter.service=reiter"
+      - "traefik.http.routers.reiter-http.rule=Host(`${DOMINIO}`)"
+      - "traefik.http.routers.reiter-http.entrypoints=${TRAEFIK_ENTRY_HTTP}"
+      - "traefik.http.routers.reiter-http.middlewares=reiter-a-https"
+      - "traefik.http.routers.reiter-http.service=reiter"
+      - "traefik.http.middlewares.reiter-a-https.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.reiter-a-https.redirectscheme.permanent=true"
 
   worker:
     <<: *comun

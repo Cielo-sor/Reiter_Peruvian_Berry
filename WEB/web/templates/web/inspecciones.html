@@ -1,0 +1,19 @@
+{% extends "web/base.html" %}
+{% block titulo %}Inspecciones de arándanos{% endblock %}
+{% block contenido %}
+<h1>Inspecciones de arándanos</h1>
+<table>
+  <thead><tr><th>Fecha</th><th>Lote</th><th>Usuario</th><th>Detecciones</th><th>Foto</th></tr></thead>
+  <tbody>
+    {% for registro in registros %}
+    <tr>
+      <td>{{ registro.creada }}</td><td>{{ registro.lote|default:"—" }}</td>
+      <td>{{ registro.usuario.email }}</td><td>{{ registro.detecciones|length }}</td>
+      <td><a href="{% url 'web:inspeccion_imagen' registro.pk %}">Ver foto anotada</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5">Todavía no hay inspecciones.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

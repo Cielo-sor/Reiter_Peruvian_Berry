@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # deploy/instalar.sh — Instala (o reinstala) la plataforma en el VPS, junto al Traefik y al OpenClaw que ya corren.
 #
-#   bash /srv/riachuelo/deploy/instalar.sh
+#   bash /srv/reiter/deploy/instalar.sh
 #
 # 1) revisa Docker y detecta el Traefik existente (red, entrypoints 80/443 y resolvedor de certificados),
 # 2) crea deploy/.env.piloto la primera vez (con clave secreta) y se detiene para que pongas Supabase y Cloudinary,
 # 3) valida el .env.piloto, revisa el DNS, construye la imagen y levanta web + worker con límites de RAM/CPU,
-# 4) espera a que responda y ejecuta el diagnóstico. No modifica OpenClaw, Traefik ni nada fuera de /srv/riachuelo.
+# 4) espera a que responda y ejecuta el diagnóstico. No modifica OpenClaw, Traefik ni nada fuera de /srv/reiter.
 set -euo pipefail
 cd "$(dirname "$0")"
-DOMINIO="${DOMINIO:-monitoreo.agricolariachuelo.org}"
+DOMINIO="${DOMINIO:?Define DOMINIO con el nombre público de esta instancia antes de instalar.}"
 
 verde() { printf '\033[32m%s\033[0m\n' "$*"; }
 amarillo() { printf '\033[33m%s\033[0m\n' "$*"; }
@@ -32,14 +32,14 @@ verde "  Contenedor: $TRAEFIK"
 MODO_RED="$(docker inspect -f '{{.HostConfig.NetworkMode}}' "$TRAEFIK")"
 if [ "$MODO_RED" = "host" ]; then
   # Traefik usa la red del VPS (modo host): llega a cualquier red de Docker, así que la plataforma usa una propia.
-  RED="riachuelo-proxy"
+  RED="reiter-proxy"
   docker network inspect "$RED" >/dev/null 2>&1 || docker network create "$RED" >/dev/null
 else
   RED="$(docker inspect -f '{{range $k, $v := .NetworkSettings.Networks}}{{$k}}{{"\n"}}{{end}}' "$TRAEFIK" \
         | grep -vE '^(bridge|host|none)?$' | head -n1 || true)"
   if [ -z "$RED" ]; then
     # Traefik solo en la red «bridge» por defecto: se le suma una red propia (no cambia nada de OpenClaw).
-    RED="riachuelo-proxy"
+    RED="reiter-proxy"
     docker network inspect "$RED" >/dev/null 2>&1 || docker network create "$RED" >/dev/null
     docker network connect "$RED" "$TRAEFIK" 2>/dev/null || true
     amarillo "  Traefik se conectó también a la red $RED (si se recrea Traefik, vuelve a ejecutar instalar.sh)."
@@ -80,18 +80,18 @@ TRAEFIK_CERTRESOLVER=$RESOLVER
 VARS
 
 # ------------------------------------------------------------------ 2. secretos
-chmod 700 /srv/riachuelo 2>/dev/null || true
+chmod 700 /srv/reiter 2>/dev/null || true
 mkdir -p modelos
 if [ ! -f .env.piloto ]; then
   paso "Creando deploy/.env.piloto"
   cp env.piloto.plantilla .env.piloto
   CLAVE="$(python3 -c 'import secrets; print(secrets.token_urlsafe(60))')"
   sed -i "s|^DJANGO_SECRET_KEY=.*|DJANGO_SECRET_KEY=$CLAVE|" .env.piloto
-  sed -i "s|monitoreo.agricolariachuelo.org|$DOMINIO|g" .env.piloto
+  sed -i "s|reiter\.example\.invalid|$DOMINIO|g" .env.piloto
   chmod 600 .env.piloto
   amarillo "  Falta poner DATABASE_URL (Supabase del piloto) y CLOUDINARY_URL. Edita el archivo con:"
   amarillo "      nano $(pwd)/.env.piloto"
-  amarillo "  (Ctrl+O, Enter para guardar; Ctrl+X para salir) y vuelve a ejecutar: bash $(pwd)/instalar.sh"
+  amarillo "  (Ctrl+O, Enter para guardar; Ctrl+X para salir) y vuelve a ejecutar: DOMINIO=$DOMINIO bash $(pwd)/instalar.sh"
   exit 0
 fi
 chmod 600 .env.piloto
@@ -131,9 +131,9 @@ docker compose up -d --remove-orphans || true   # si la web falla, abajo se mues
 
 paso "Esperando a que la web responda (migraciones incluidas)"
 for i in $(seq 1 40); do
-  ESTADO="$(docker inspect -f '{{.State.Health.Status}}' riachuelo-web-1 2>/dev/null || echo desconocido)"
+  ESTADO="$(docker inspect -f '{{.State.Health.Status}}' reiter-web-1 2>/dev/null || echo desconocido)"
   [ "$ESTADO" = "healthy" ] && break
-  if [ "$ESTADO" = "unhealthy" ] || [ "$(docker inspect -f '{{.State.Restarting}}' riachuelo-web-1 2>/dev/null)" = "true" ]; then
+  if [ "$ESTADO" = "unhealthy" ] || [ "$(docker inspect -f '{{.State.Restarting}}' reiter-web-1 2>/dev/null)" = "true" ]; then
     docker compose logs --tail 40 web
     falla "La web no arrancó (mensaje arriba)."
   fi

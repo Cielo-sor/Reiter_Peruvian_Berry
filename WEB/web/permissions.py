@@ -22,6 +22,7 @@ PERMISOS = {
     "caso.abrir_manual": {E},
     "mapa.ver": {A, E, S},
     "sesiones.ver": {A, E, S},
+    "inspecciones.ver": {A, E, S},
     "reportes.exportar": {A, E, S},
     "notificaciones.ver": {A, E, S},
     "ia.ver": {A, E},

@@ -27,15 +27,16 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  int _sessionRevision = 0;
   static const _titles = ['Detectar defectos', 'Historial', 'Ajustes'];
 
   @override
   Widget build(BuildContext context) {
     // Se recrea la pantalla de historial al entrar para refrescar datos.
     final pages = <Widget>[
-      const CaptureScreen(),
+      CaptureScreen(key: ValueKey(_sessionRevision)),
       _index == 1 ? const HistoryScreen() : const SizedBox.shrink(),
-      const SettingsScreen(),
+      SettingsScreen(onSessionChanged: () => setState(() => _sessionRevision++)),
     ];
     return Scaffold(
       appBar: AppBar(title: Text('🫐 ${_titles[_index]}')),

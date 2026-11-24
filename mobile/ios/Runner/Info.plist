@@ -24,6 +24,17 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>La cámara permite fotografiar arándanos para su inspección.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>La galería permite seleccionar fotos para inspeccionar arándanos.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Conecta con el servidor de inspecciones en tu red local.</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

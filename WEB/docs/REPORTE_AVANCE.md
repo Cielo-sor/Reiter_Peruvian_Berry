@@ -352,3 +352,9 @@ subida → confirmación → worker → caso → decisión → aviso.
 - Monitoreo filtra capturas confirmadas por periodo, módulo y caseta. El módulo usa el lote de la captura.
 - La caseta es opcional en las sesiones existentes. Los registros sin asignar se muestran en la consulta general.
 - La pantalla de contraseña centra el formulario y mejora la presentación de requisitos y errores. Conserva el flujo de Django.
+
+## Integración de la inspección de arándanos en Reiter (23/11/2026)
+
+- Django recibe fotos de Flutter en `/api/v1/inspecciones`, guarda la inspección y expone el historial web en `/inspecciones/`. Los móviles acceden a sus propias fotos por JWT. Las fotos se guardan en la misma base que el registro.
+- Flutter usa el inicio de sesión y la renovación de tokens existentes. Se agregó una configuración de despliegue separada para Reiter y un peso ONNX exclusivo para la inspección.
+- La detección con fotos reales requiere el modelo entrenado. Para verificar el acceso desde internet faltan el dominio y la infraestructura de Reiter. FastAPI sigue disponible durante la transición.

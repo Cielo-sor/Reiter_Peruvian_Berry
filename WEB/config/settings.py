@@ -37,6 +37,7 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 PUBLIC_BASE_URL = env("PUBLIC_BASE_URL", default="http://localhost:8000")  # enlaces en WhatsApp
 
 INSTALLED_APPS = [
+    "inspecciones",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -191,6 +192,7 @@ WHATSAPP_CLIENT = env("WHATSAPP_CLIENT", default="notificaciones.whatsapp.Consol
 
 # Worker de IA (v1.0+, §28.8 del Maestro App Móvil). IA_DETECTOR: simulado | onnx | yolo.
 IA_DETECTOR = env("IA_DETECTOR", default="simulado" if APP_ENV == "dev" else "onnx")
+INSPECCION_MODEL_PATH = env("INSPECCION_MODEL_PATH", default="")
 MODEL_PATH = str(BASE_DIR / env("MODEL_PATH", default="ia/inference/weights/modelo.onnx"))  # relativa → a BASE_DIR
 IA_SIMULADO_PROBABILIDAD = env.float("IA_SIMULADO_PROBABILIDAD", default=0.2)  # fotos con indicio (solo simulado)
 IA_DESCARGA_TIMEOUT = env.int("IA_DESCARGA_TIMEOUT", default=60)
@@ -216,7 +218,7 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "EXCEPTION_HANDLER": "api.errors.api_exception_handler",  # cuerpo ApiErrorBody (15.3)
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_THROTTLE_RATES": {"login": "10/min", "registro": "20/hour", "renovar": "60/min"},
+    "DEFAULT_THROTTLE_RATES": {"login": "10/min", "registro": "20/hour", "renovar": "60/min", "inspecciones": "30/min"},
     "UNAUTHENTICATED_USER": None,
 }
 SIMPLE_JWT = {

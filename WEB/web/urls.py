@@ -1,6 +1,7 @@
 # web/urls.py — Rutas de la web (sección 6.3). Prefijo raíz; la API vive en /api/v1/ y Django Admin en /gestion/.
 from django.urls import path
 
+from inspecciones import views as inspecciones
 from web import views
 
 app_name = "web"
@@ -28,6 +29,8 @@ urlpatterns = [
     path("sesiones/", views.sesiones, name="sesiones"),
     path("sesiones/<uuid:pk>/", views.sesion, name="sesion"),
     path("sesiones/<uuid:pk>/eliminar/", views.sesion_eliminar, name="sesion_eliminar"),  # v1.3.1 (ADR-W-008)
+    path("inspecciones/", inspecciones.historial_web, name="inspecciones"),
+    path("inspecciones/<int:pk>/imagen/", inspecciones.imagen_web, name="inspeccion_imagen"),
     path("reportes/", views.reportes, name="reportes"),
     path("reportes/casos.csv", views.exportar_casos, name="exportar_casos"),
     path("notificaciones/", views.notificaciones, name="notificaciones"),
